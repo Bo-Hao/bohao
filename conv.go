@@ -29,6 +29,17 @@ func StrToInt_sli(sli []string) (result []int){
 	return
 }
 
+func StrToFloat_sli(sli []string) (result []float64) {
+	for i := 0; i < len(sli); i ++{
+		f, err := strconv.ParseFloat(sli[i], 64)
+		if err != nil {
+			log.Fatal(err)
+		}
+		result = append(result, f)
+	}
+	return 
+}
+
 func ConvSliceFromStr2Float(s [][]string) [][]float64 {
 	var result [][]float64
 	var tmp []float64
@@ -54,6 +65,18 @@ func ConvSliceFromStr2int(s [][]string) [][]int {
 		result = append(result, tmp)
 	}
 	return result
+}
+
+func ConvSliceFromFloatToStr(s [][]float64) (result [][]string){
+	for i := 0; i < len(s); i ++{
+		var tmp []string
+		for j := 0; j < len(s[i]); j ++{
+			v := strconv.FormatFloat(s[i][j], 'f', 10, 64)
+			tmp = append(tmp, v)
+		}
+		result = append(result, tmp)
+	}
+	return
 }
 
 func ExtractData(data [][]float64, L []int) (result [][]float64) {
