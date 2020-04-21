@@ -139,7 +139,7 @@ func (m *NN) Predict(x [][]float64) [][]float64 {
 	// Define the needed parameters.
 	inputShape := m.W[0].Shape()[0]
 	sampleSize := len(x)
-	batchSize := 100
+	batchSize := 625
 	if batchSize > sampleSize {
 		batchSize = sampleSize
 	} else if batchSize <= 1 {
@@ -150,9 +150,12 @@ func (m *NN) Predict(x [][]float64) [][]float64 {
 	//Normalize the input data. And stock the information into m.FitStock.
 	input_x, _, _ := Normalized(x)
 	x_oneDim := ToOneDimSlice(input_x)
+	for i := 0; i < inputShape; i ++{
+		x_oneDim = append(x_oneDim, x_oneDim[len(x_oneDim) - inputShape + i])
+	} 
 
 	// Construct the input data tensor.
-	xT := tensor.New(tensor.WithBacking(x_oneDim), tensor.WithShape(sampleSize, inputShape))
+	xT := tensor.New(tensor.WithBacking(x_oneDim), tensor.WithShape(sampleSize+1, inputShape))
 	
 	// make prediction in batch.
 	var prediction [][]float64
@@ -169,16 +172,22 @@ func (m *NN) Predict(x [][]float64) [][]float64 {
 			over = (end - sampleSize)
 			end = sampleSize
 		}
-
-		X := gorgonia.NewMatrix(m.G, tensor.Float64, gorgonia.WithShape(batchSize - over, inputShape), gorgonia.WithName("X"))
-		// Construct forward pass and record it using tape machine.
-		m.Forward(X)
-
+		
+		if over == 1{
+			end += 1
+		}
 		//slice data Note: xT and xVal are same type but different size.
 		xVal, err := xT.Slice(sli{start, end})
 		if err != nil {
 			log.Fatal(err, "Can't slice the data")
 		}
+		
+
+		// Define input node.
+		X := gorgonia.NewMatrix(m.G, tensor.Float64, gorgonia.WithShape(end - start, inputShape), gorgonia.WithName("X"))
+
+		// Construct forward pass and record it using tape machine.
+		m.Forward(X)
 
 		// Dump it, still need tape machine to activate the process.
 		gorgonia.Let(X, xVal)
@@ -189,7 +198,13 @@ func (m *NN) Predict(x [][]float64) [][]float64 {
 		vm.Reset()
 
 		// Append the result.
-		prediction = append(prediction, m.ValueToFloatSlice()...)
+		if over == 1{
+			prediction = append(prediction, m.ValueToFloatSlice()[0])
+		}else {
+			prediction = append(prediction, m.ValueToFloatSlice()...)
+		}
+		
+
 	}
 
 	// generalize the output using the data which stock in m.FitStock.
@@ -245,7 +260,7 @@ func (m *NN) Fit(x_, y_ [][]float64, para Parameter) {
 		solver := gorgonia.NewRMSPropSolver(gorgonia.WithBatchSize(float64(batchSize)), gorgonia.WithLearnRate(para.Lr))
 
 		// Start epoches training
-		for epoch := 0; epoch < para.Epoches; epoch++ {
+		for epoch := 1; epoch < para.Epoches + 1; epoch++ {
 			// Start batches...
 			for b := 0; b < batches; b++ {
 				// Handling the 
@@ -305,7 +320,7 @@ func (m *NN) Fit(x_, y_ [][]float64, para Parameter) {
 			}
 
 			// Print cost
-			if epoch%50 == 0 {
+			if epoch%50 == 0{
 				fmt.Println("Iteration: ", epoch, "  Cost: ", costVal)
 			}
 			// Stock it.
@@ -377,7 +392,7 @@ func (m *NN) Fit(x_, y_ [][]float64, para Parameter) {
 			}
 
 			// Print cost
-			if epoch%10 == 0 {
+			if epoch%50 == 0 {
 				fmt.Println("Iteration: ", epoch, "  Cost: ", costVal)
 			}
 			// Stock it.
