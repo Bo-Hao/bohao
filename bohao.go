@@ -400,3 +400,33 @@ func Generalize(normData [][]float64, mean_list, std_list []float64) (rawData []
 	rawData = normData
 	return 
 }
+
+func Where_float(sli []float64, sub float64) (idx []int){
+	for i := 0; i < len(sli); i ++{
+		if sli[i] == sub {
+			idx = append(idx, i)
+		}	
+	}
+	return
+}
+
+func Where_int(sli []int, sub int) (idx []int){
+	for i := 0; i < len(sli); i ++{
+		if sli[i] == sub {
+			idx = append(idx, i)
+		}	
+	}
+	return
+}
+
+func IntersectionSlice_int(sli1 []int, sli2 []int) (idx [][]int) {
+	for i := 0; i < len(sli1); i ++{
+		intersect := Where_int(sli2, sli1[i])
+		if len(intersect) != 0 {
+			for j := 0; j < len(intersect); j ++{
+				idx = append(idx, []int{sli1[i], sli2[intersect[j]]})
+			}
+		} 
+	}
+	return
+}

@@ -26,6 +26,7 @@ type NetworkStruction struct {
 	Neuron  []int
 	Dropout []float64
 	Act     []ActivationFunc
+	Bias    bool
 }
 
 // Stock the fitting parameters.
@@ -52,6 +53,7 @@ func InitParameter() Parameter {
 type NN struct {
 	G *gorgonia.ExprGraph
 	W []*gorgonia.Node
+	B []*gorgonia.Node
 	D []float64
 	A []ActivationFunc
 
@@ -67,6 +69,10 @@ func (m *NN) Learnables() gorgonia.Nodes {
 	for i := 0; i < len(m.W); i++ {
 		n.Add(m.W[i])
 	}
+	for i := 0; i < len(m.B); i++ {
+		n.Add(m.B[i])
+	}
+
 	return n.ToSlice().Nodes()
 }
 
@@ -75,6 +81,7 @@ func NewNN(g *gorgonia.ExprGraph, S NetworkStruction) *NN {
 	// Set random seed
 	rand.Seed(time.Now().Unix())
 	var Ns gorgonia.Nodes
+	var Bs gorgonia.Nodes
 	for i := 0; i < len(S.Neuron)-1; i++ {
 		Ns = append(Ns, gorgonia.NewMatrix(
 			g,
@@ -84,9 +91,22 @@ func NewNN(g *gorgonia.ExprGraph, S NetworkStruction) *NN {
 			gorgonia.WithInit(gorgonia.GlorotU(1)),
 		))
 	}
+	if S.Bias {
+		for i := 0; i < len(S.Neuron)-1; i++ {
+			Bs = append(Bs, gorgonia.NewMatrix(
+				g,
+				tensor.Float64,
+				gorgonia.WithShape(1, S.Neuron[i+1]),
+				gorgonia.WithName("B"+strconv.Itoa(i)),
+				gorgonia.WithInit(gorgonia.GlorotU(1)),
+			))
+		}
+	}
+
 	return &NN{
 		G: g,
 		W: Ns,
+		B: Bs,
 		D: S.Dropout,
 		A: S.Act,
 	}
@@ -102,7 +122,11 @@ func (m *NN) Forward(x *gorgonia.Node) (err error) {
 	l[0] = x
 
 	for i := 0; i < len(m.W); i++ {
-		ldot[i] = gorgonia.Must(gorgonia.Mul(l[i], m.W[i]))
+		if len(m.B) != 0 {
+			ldot[i] = gorgonia.Must(gorgonia.BroadcastAdd(gorgonia.Must(gorgonia.Mul(l[i], m.W[i])), m.B[i], nil, []byte{0}))
+		} else {
+			ldot[i] = gorgonia.Must(gorgonia.Mul(l[i], m.W[i]))
+		}
 		drop, err := gorgonia.Dropout(ldot[i], m.D[i])
 		if err != nil {
 			log.Printf("Can't drop!")
@@ -150,13 +174,13 @@ func (m *NN) Predict(x [][]float64) [][]float64 {
 	//Normalize the input data. And stock the information into m.FitStock.
 	input_x, _, _ := Normalized(x)
 	x_oneDim := ToOneDimSlice(input_x)
-	for i := 0; i < inputShape; i ++{
-		x_oneDim = append(x_oneDim, x_oneDim[len(x_oneDim) - inputShape + i])
-	} 
+	for i := 0; i < inputShape; i++ {
+		x_oneDim = append(x_oneDim, x_oneDim[len(x_oneDim)-inputShape+i])
+	}
 
 	// Construct the input data tensor.
 	xT := tensor.New(tensor.WithBacking(x_oneDim), tensor.WithShape(sampleSize+1, inputShape))
-	
+
 	// make prediction in batch.
 	var prediction [][]float64
 
@@ -172,8 +196,8 @@ func (m *NN) Predict(x [][]float64) [][]float64 {
 			over = (end - sampleSize)
 			end = sampleSize
 		}
-		
-		if over == 1{
+
+		if over == 1 {
 			end += 1
 		}
 		//slice data Note: xT and xVal are same type but different size.
@@ -181,10 +205,9 @@ func (m *NN) Predict(x [][]float64) [][]float64 {
 		if err != nil {
 			log.Fatal(err, "Can't slice the data")
 		}
-		
 
 		// Define input node.
-		X := gorgonia.NewMatrix(m.G, tensor.Float64, gorgonia.WithShape(end - start, inputShape), gorgonia.WithName("X"))
+		X := gorgonia.NewMatrix(m.G, tensor.Float64, gorgonia.WithShape(end-start, inputShape), gorgonia.WithName("X"))
 
 		// Construct forward pass and record it using tape machine.
 		m.Forward(X)
@@ -198,12 +221,11 @@ func (m *NN) Predict(x [][]float64) [][]float64 {
 		vm.Reset()
 
 		// Append the result.
-		if over == 1{
+		if over == 1 {
 			prediction = append(prediction, m.ValueToFloatSlice()[0])
-		}else {
+		} else {
 			prediction = append(prediction, m.ValueToFloatSlice()...)
 		}
-		
 
 	}
 
@@ -252,21 +274,21 @@ func (m *NN) Fit(x_, y_ [][]float64, para Parameter) {
 	xT := tensor.New(tensor.WithBacking(x_oneDim), tensor.WithShape(sampleSize, inputShape))
 	yT := tensor.New(tensor.WithBacking(y_oneDim), tensor.WithShape(sampleSize, outputShape))
 
-	// costVal will be used outside the loop. 
-	var costVal gorgonia.Value 
-	
+	// costVal will be used outside the loop.
+	var costVal gorgonia.Value
+
 	// Since different optimizer are not the same type. We should rewrite code.
 	if para.Solver == "RMSProp" {
 		solver := gorgonia.NewRMSPropSolver(gorgonia.WithBatchSize(float64(batchSize)), gorgonia.WithLearnRate(para.Lr))
 
 		// Start epoches training
-		for epoch := 1; epoch < para.Epoches + 1; epoch++ {
+		for epoch := 1; epoch < para.Epoches+1; epoch++ {
 			// Start batches...
 			for b := 0; b < batches; b++ {
-				// Handling the 
+				// Handling the
 				start := b * batchSize
-				end := start + batchSize 
-				over := 0 
+				end := start + batchSize
+				over := 0
 				if start >= sampleSize {
 					break
 				}
@@ -286,8 +308,8 @@ func (m *NN) Fit(x_, y_ [][]float64, para Parameter) {
 				}
 
 				// Define input output node
-				X := gorgonia.NewMatrix(m.G, tensor.Float64, gorgonia.WithShape(batchSize - over, inputShape), gorgonia.WithName("X"))
-				y := gorgonia.NewMatrix(m.G, tensor.Float64, gorgonia.WithShape(batchSize - over, outputShape), gorgonia.WithName("y"))
+				X := gorgonia.NewMatrix(m.G, tensor.Float64, gorgonia.WithShape(batchSize-over, inputShape), gorgonia.WithName("X"))
+				y := gorgonia.NewMatrix(m.G, tensor.Float64, gorgonia.WithShape(batchSize-over, outputShape), gorgonia.WithName("y"))
 
 				// forward pass
 				err = m.Forward(X)
@@ -320,25 +342,25 @@ func (m *NN) Fit(x_, y_ [][]float64, para Parameter) {
 			}
 
 			// Print cost
-			if epoch%50 == 0{
+			if epoch%50 == 0 {
 				fmt.Println("Iteration: ", epoch, "  Cost: ", costVal)
 			}
 			// Stock it.
 			S.LossRecord = append(S.LossRecord, []float64{float64(epoch), costVal.Data().(float64)})
 		}
 		m.FitStock.LossRecord = S.LossRecord
-	
+
 	} else if para.Solver == "Adam" {
 		solver := gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(batchSize)), gorgonia.WithLearnRate(para.Lr))
-		
+
 		// Start epoches training
 		for epoch := 0; epoch < para.Epoches; epoch++ {
 			// Start batches...
 			for b := 0; b < batches; b++ {
-				// Handling the 
+				// Handling the
 				start := b * batchSize
-				end := start + batchSize 
-				over := 0 
+				end := start + batchSize
+				over := 0
 				if start >= sampleSize {
 					break
 				}
@@ -358,8 +380,8 @@ func (m *NN) Fit(x_, y_ [][]float64, para Parameter) {
 				}
 
 				// Define input output node
-				X := gorgonia.NewMatrix(m.G, tensor.Float64, gorgonia.WithShape(batchSize - over, inputShape), gorgonia.WithName("X"))
-				y := gorgonia.NewMatrix(m.G, tensor.Float64, gorgonia.WithShape(batchSize - over, outputShape), gorgonia.WithName("y"))
+				X := gorgonia.NewMatrix(m.G, tensor.Float64, gorgonia.WithShape(batchSize-over, inputShape), gorgonia.WithName("X"))
+				y := gorgonia.NewMatrix(m.G, tensor.Float64, gorgonia.WithShape(batchSize-over, outputShape), gorgonia.WithName("y"))
 
 				// forward pass
 				err = m.Forward(X)
@@ -456,6 +478,7 @@ func Example_NN() {
 		Neuron:  []int{4, 4, 2},                                     // the front one should be input shape and  the last one should be output shape
 		Dropout: []float64{0, 0},                                    // set each dropout layer
 		Act:     []ActivationFunc{gorgonia.Rectify, Linear, Linear}, // can use act func directly from outside
+		Bias:    false,
 	}
 
 	// create NN
@@ -472,4 +495,5 @@ func Example_NN() {
 
 	// show predition
 	fmt.Println(pred)
+	//fmt.Println(m.B[0].Value())
 }
