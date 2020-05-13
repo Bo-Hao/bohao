@@ -14,11 +14,11 @@ import (
 
 // A struct that stock the fitting data such as mean and standard error of the data and also save the loss when optimizing.
 type Stock struct {
-	LossRecord  [][]float64
-	mean_list_x []float64
-	std_list_x  []float64
-	mean_list_y []float64
-	std_list_y  []float64
+	LossRecord [][]float64
+	max_list_x []float64
+	min_list_x []float64
+	max_list_y []float64
+	min_list_y []float64
 }
 
 // Use as the input of newNN func. Neuron mean the number of node of each layer. Dropout mean the dropout ratio and Act denote the activation func of each layer.
@@ -43,7 +43,7 @@ func InitParameter() Parameter {
 	return Parameter{
 		Lr:        0.01,
 		Epoches:   200,
-		BatchSize: 6,
+		BatchSize: 500,
 		Solver:    "RMSProp",
 		Lossfunc:  RMSError,
 	}
@@ -92,13 +92,13 @@ func NewNN(g *gorgonia.ExprGraph, S NetworkStruction) *NN {
 		))
 	}
 	if S.Bias {
-		for i := 0; i < len(S.Neuron)-1; i++ {
+		for i := 0; i < len(S.Neuron)-2; i++ {
 			Bs = append(Bs, gorgonia.NewMatrix(
 				g,
 				tensor.Float64,
 				gorgonia.WithShape(1, S.Neuron[i+1]),
-				gorgonia.WithName("B"+strconv.Itoa(i)),
-				gorgonia.WithInit(gorgonia.GlorotU(1)),
+				gorgonia.WithName("b"+strconv.Itoa(i)),
+				gorgonia.WithInit(gorgonia.Uniform(0.5, 0.8)),
 			))
 		}
 	}
@@ -122,10 +122,16 @@ func (m *NN) Forward(x *gorgonia.Node) (err error) {
 	l[0] = x
 
 	for i := 0; i < len(m.W); i++ {
-		if len(m.B) != 0 {
-			ldot[i] = gorgonia.Must(gorgonia.BroadcastAdd(gorgonia.Must(gorgonia.Mul(l[i], m.W[i])), m.B[i], nil, []byte{0}))
+		if len(m.B) != 0 && i < len(m.W)-1 {
+			ldot[i], err = gorgonia.BroadcastAdd(gorgonia.Must(gorgonia.Mul(l[i], m.W[i])), m.B[i], nil, []byte{0})
+			if err != nil {
+				panic(err)
+			}
 		} else {
-			ldot[i] = gorgonia.Must(gorgonia.Mul(l[i], m.W[i]))
+			ldot[i], err = gorgonia.Mul(l[i], m.W[i])
+			if err != nil {
+				log.Fatal("mul wrong ", err)
+			}
 		}
 		drop, err := gorgonia.Dropout(ldot[i], m.D[i])
 		if err != nil {
@@ -163,7 +169,7 @@ func (m *NN) Predict(x [][]float64) [][]float64 {
 	// Define the needed parameters.
 	inputShape := m.W[0].Shape()[0]
 	sampleSize := len(x)
-	batchSize := 625
+	batchSize := sampleSize
 	if batchSize > sampleSize {
 		batchSize = sampleSize
 	} else if batchSize <= 1 {
@@ -173,6 +179,7 @@ func (m *NN) Predict(x [][]float64) [][]float64 {
 
 	//Normalize the input data. And stock the information into m.FitStock.
 	input_x, _, _ := Normalized(x)
+	//input_x := x
 	x_oneDim := ToOneDimSlice(input_x)
 	for i := 0; i < inputShape; i++ {
 		x_oneDim = append(x_oneDim, x_oneDim[len(x_oneDim)-inputShape+i])
@@ -230,20 +237,23 @@ func (m *NN) Predict(x [][]float64) [][]float64 {
 	}
 
 	// generalize the output using the data which stock in m.FitStock.
-	prediction_gen := Generalize(prediction, m.FitStock.mean_list_y, m.FitStock.std_list_y)
+	prediction_gen := Generalize(prediction, m.FitStock.max_list_y, m.FitStock.min_list_y)
+	//prediction_gen := prediction
 	return prediction_gen
 }
 
 func (m *NN) Fit(x_, y_ [][]float64, para Parameter) {
 	//Normalize the input data. And stock the information into m.FitStock.
 	S := Stock{}
-	input_x, mean_list_x, std_list_x := Normalized(x_)
-	S.mean_list_x = mean_list_x
-	S.std_list_x = std_list_x
+	input_x, max_list_x, min_list_x := Normalized(x_)
+	S.max_list_x = max_list_x
+	S.min_list_x = min_list_x
 
-	input_y, mean_list_y, std_list_y := Normalized(y_)
-	S.mean_list_y = mean_list_y
-	S.std_list_y = std_list_y
+	input_y, max_list_y, min_list_y := Normalized(y_)
+	S.max_list_y = max_list_y
+	S.min_list_y = min_list_y
+	/* input_x := x_
+	input_y := y_ */
 
 	// set S into struct m.
 	m.FitStock = S
@@ -336,6 +346,7 @@ func (m *NN) Fit(x_, y_ [][]float64, para Parameter) {
 				gorgonia.Let(y, yVal)
 
 				// Optimizing...
+				vm.Reset()
 				vm.RunAll()
 				solver.Step(gorgonia.NodesToValueGrads(m.Learnables()))
 				vm.Reset()
@@ -408,6 +419,7 @@ func (m *NN) Fit(x_, y_ [][]float64, para Parameter) {
 				gorgonia.Let(y, yVal)
 
 				// Optimizing...
+				vm.Reset()
 				vm.RunAll()
 				solver.Step(gorgonia.NodesToValueGrads(m.Learnables()))
 				vm.Reset()
@@ -468,17 +480,18 @@ func Example_Auto() {
 func Example_NN() {
 	// fake data
 	x := [][]float64{[]float64{1, 2, 3, 1}, []float64{4, 5, 6, 1}, []float64{4, 5, 6, 1}, []float64{4, 5, 6, 1}, []float64{4, 5, 6, 1}}
-	y := [][]float64{[]float64{1, 2}, []float64{5, 6}, []float64{5, 6}, []float64{5, 6}, []float64{5, 6}}
+	//y := [][]float64{[]float64{1, 2}, []float64{5, 6}, []float64{5, 6}, []float64{5, 6}, []float64{5, 6}}
+	y := [][]float64{[]float64{1}, []float64{5}, []float64{5}, []float64{5}, []float64{5}}
 
 	// init graph
 	g := gorgonia.NewGraph()
 
 	// setup network struction
 	S := NetworkStruction{
-		Neuron:  []int{4, 4, 2},                                     // the front one should be input shape and  the last one should be output shape
+		Neuron:  []int{4, 4, 1},                                     // the front one should be input shape and  the last one should be output shape
 		Dropout: []float64{0, 0},                                    // set each dropout layer
 		Act:     []ActivationFunc{gorgonia.Rectify, Linear, Linear}, // can use act func directly from outside
-		Bias:    false,
+		Bias:    true,
 	}
 
 	// create NN
@@ -495,5 +508,4 @@ func Example_NN() {
 
 	// show predition
 	fmt.Println(pred)
-	//fmt.Println(m.B[0].Value())
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"sort"
 )
 
 var RangeColor = []string{
@@ -11,15 +12,15 @@ var RangeColor = []string{
 	"#fee090", "#fdae61", "#f46d43", "#d73027", "#a50026",
 }
 
-func hold(){
+func hold() {
 	fmt.Println("version- 1.1.0")
 }
 
-func AddOne(data[][]float64) (withOne [][]float64){
-	for i := 0; i < len(data); i ++{
+func AddOne(data [][]float64) (withOne [][]float64) {
+	for i := 0; i < len(data); i++ {
 		withOne = append(withOne, append(data[i], 1.0))
 	}
-	return 
+	return
 }
 
 func Matrix(value []float64, shape []int) [][]float64 {
@@ -80,8 +81,8 @@ func Transpose(mat [][]float64) [][]float64 {
 
 func IsIn_int(num int, sli []int) bool {
 	respond := false
-	for i := 0; i < len(sli); i ++{
-		if num == sli[i]{
+	for i := 0; i < len(sli); i++ {
+		if num == sli[i] {
 			respond = true
 		}
 	}
@@ -90,8 +91,8 @@ func IsIn_int(num int, sli []int) bool {
 
 func IsIn_float(num float64, sli []float64) bool {
 	respond := false
-	for i := 0; i < len(sli); i ++{
-		if num == sli[i]{
+	for i := 0; i < len(sli); i++ {
+		if num == sli[i] {
 			respond = true
 		}
 	}
@@ -100,29 +101,27 @@ func IsIn_float(num float64, sli []float64) bool {
 
 func IsIn_str(num string, sli []string) bool {
 	respond := false
-	for i := 0; i < len(sli); i ++{
-		if num == sli[i]{
+	for i := 0; i < len(sli); i++ {
+		if num == sli[i] {
 			respond = true
 		}
 	}
 	return respond
 }
 
-func InverseSlice_int(sli []int) (result []int){
-	for i := 0; i < len(sli); i ++{
-		result = append(result, sli[len(sli) - 1 - i])
+func InverseSlice_int(sli []int) (result []int) {
+	for i := 0; i < len(sli); i++ {
+		result = append(result, sli[len(sli)-1-i])
 	}
-	return 
+	return
 }
 
-func InverseSlice_float64(sli []float64) (result []float64){
-	for i := 0; i < len(sli); i ++{
-		result = append(result, sli[len(sli) - 1 - i])
+func InverseSlice_float64(sli []float64) (result []float64) {
+	for i := 0; i < len(sli); i++ {
+		result = append(result, sli[len(sli)-1-i])
 	}
-	return 
+	return
 }
-
-
 
 func Transpose_int(mat [][]int) [][]int {
 	row := len(mat)
@@ -150,7 +149,6 @@ func Transpose_float(mat [][]float64) [][]float64 {
 	return t
 }
 
-
 func Transpose_str(mat [][]string) [][]string {
 	row := len(mat)
 	col := len(mat[0])
@@ -164,20 +162,20 @@ func Transpose_str(mat [][]string) [][]string {
 	return t
 }
 
-func Sum_float(sli []float64) (result float64){
-	
-	for i := 0; i < len(sli); i++{
+func Sum_float(sli []float64) (result float64) {
+
+	for i := 0; i < len(sli); i++ {
 		result += sli[i]
 	}
-	return 
+	return
 }
 
-func Sum_int(sli []int) (result int){
-	
-	for i := 0; i < len(sli); i++{
+func Sum_int(sli []int) (result int) {
+
+	for i := 0; i < len(sli); i++ {
 		result += sli[i]
 	}
-	return 
+	return
 }
 
 func RemoveDuplicateElement(addrs []string) []string {
@@ -327,7 +325,7 @@ func C(x, y int) int {
 	c := 1
 	for i := 0; i < y; i++ {
 		c *= x
-		x -= 1  
+		x -= 1
 	}
 	for i := 0; i < y; i++ {
 		c /= i + 1
@@ -336,97 +334,116 @@ func C(x, y int) int {
 }
 
 func Std(sli []float64) (result float64) {
-	mean := Sum_float(sli)/float64(len(sli))
+	mean := Sum_float(sli) / float64(len(sli))
 	square := 0.0
 
 	for i := 0; i < len(sli); i++ {
-		square += math.Pow(float64(sli[i]) - mean, 2)
+		square += math.Pow(float64(sli[i])-mean, 2)
 	}
-	result = math.Sqrt((square) / float64(len(sli) - 1))
+	result = math.Sqrt((square) / float64(len(sli)-1))
 	return
 }
 func Std_int(sli []int) (result float64) {
 	square := 0.0
 
-	mean := float64(Sum_int(sli))/float64(len(sli))
+	mean := float64(Sum_int(sli)) / float64(len(sli))
 
 	for i := 0; i < len(sli); i++ {
-		square += math.Pow(float64(sli[i]) - mean, 2)
+		square += math.Pow(float64(sli[i])-mean, 2)
 	}
-	result = math.Sqrt((square) / float64(len(sli) - 1))
+	result = math.Sqrt((square) / float64(len(sli)-1))
 	return
 }
 
 func Mean(sli []float64) (mean float64) {
-	mean = Sum_float(sli)/ float64(len(sli))
-	return 
+	mean = Sum_float(sli) / float64(len(sli))
+	return
 }
 
-func Normalized(rawData [][]float64) ([][]float64, []float64, []float64){
+func Normalized(rawData [][]float64) ([][]float64, []float64, []float64) {
 	rawData_T := Transpose_float(rawData)
 
 	normData := make([][]float64, len(rawData))
-	for i :=0; i < len(rawData); i ++{
-		for j := 0; j < len(rawData[i]); j ++{
+	for i := 0; i < len(rawData); i++ {
+		for j := 0; j < len(rawData[i]); j++ {
 			normData[i] = append(normData[i], 0.0)
 		}
 	}
-
-	var mean_list, std_list []float64
-	for i := 0; i < len(rawData_T); i ++{
-		mean_list = append(mean_list, Mean(rawData_T[i]))
-		std_list = append(std_list, Std(rawData_T[i]))
+	var max_list, min_list []float64
+	for i := 0; i < len(rawData_T); i++ {
+		max_list = append(max_list, MaxSlice_float64(rawData_T[i]))
+		min_list = append(min_list, MinSlice_float64(rawData_T[i]))
 	}
-	
-	for i := 0; i < len(rawData); i ++{
-		for j := 0; j < len(rawData[i]); j ++{
-			if std_list[j] == 0.0 {
+
+	for i := 0; i < len(rawData); i++ {
+		for j := 0; j < len(rawData[i]); j++ {
+			if max_list[j]-min_list[j] == 0.0 {
 				normData[i][j] = 0
-			}else {
-				normData[i][j] = (rawData[i][j] - mean_list[j])/std_list[j]
+			} else {
+				normData[i][j] = 2*(rawData[i][j]-min_list[j])/(max_list[j]-min_list[j]) - 1.
 			}
 		}
 	}
-
-	return normData, mean_list, std_list
+	return normData, max_list, min_list
 }
 
-func Generalize(normData [][]float64, mean_list, std_list []float64) (rawData [][]float64){
-	for i := 0; i < len(normData); i ++{
-		for j := 0; j < len(normData[i]); j ++{
-			normData[i][j] = normData[i][j]*std_list[j] + mean_list[j]
+func Generalize(normData [][]float64, max_list, min_list []float64) [][]float64 {
+	rawData := make([][]float64, len(normData))
+	for i := 0; i < len(normData); i++ {
+		for j := 0; j < len(normData[i]); j++ {
+			rawData[i] = append(rawData[i], 0.0)
 		}
 	}
-	rawData = normData
-	return 
+	for i := 0; i < len(normData); i++ {
+		for j := 0; j < len(normData[i]); j++ {
+			rawData[i][j] = (normData[i][j]+1)*(max_list[j]-min_list[j])/2 + min_list[j]
+		}
+	}
+
+	return rawData
 }
 
-func Where_float(sli []float64, sub float64) (idx []int){
-	for i := 0; i < len(sli); i ++{
+func Where_float(sli []float64, sub float64) (idx []int) {
+	for i := 0; i < len(sli); i++ {
 		if sli[i] == sub {
 			idx = append(idx, i)
-		}	
+		}
 	}
 	return
 }
 
-func Where_int(sli []int, sub int) (idx []int){
-	for i := 0; i < len(sli); i ++{
+func Where_int(sli []int, sub int) (idx []int) {
+	for i := 0; i < len(sli); i++ {
 		if sli[i] == sub {
 			idx = append(idx, i)
-		}	
+		}
 	}
 	return
 }
 
 func IntersectionSlice_int(sli1 []int, sli2 []int) (idx [][]int) {
-	for i := 0; i < len(sli1); i ++{
+	for i := 0; i < len(sli1); i++ {
 		intersect := Where_int(sli2, sli1[i])
 		if len(intersect) != 0 {
-			for j := 0; j < len(intersect); j ++{
+			for j := 0; j < len(intersect); j++ {
 				idx = append(idx, []int{sli1[i], sli2[intersect[j]]})
 			}
-		} 
+		}
+	}
+	return
+}
+
+func Quantiles(list []float64) (q_list []float64) {
+	length := len(list) - 1
+	sort.Float64s(list)
+	for q := 0.; q <= 4.; q += 1. {
+		indx := float64(length) / 4. * float64(q)
+		
+		if indx == math.Ceil(indx) {
+			q_list = append(q_list, list[int(indx)])
+		} else {
+			q_list = append(q_list, (list[int(indx) - 1]+  list[int(indx)])/2)
+		}
 	}
 	return
 }
