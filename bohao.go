@@ -334,24 +334,27 @@ func C(x, y int) int {
 }
 
 func Std(sli []float64) (result float64) {
-	mean := Sum_float(sli) / float64(len(sli))
-	square := 0.0
-
-	for i := 0; i < len(sli); i++ {
-		square += math.Pow(float64(sli[i])-mean, 2)
+	square := 0.
+	sum := 0.
+	n := len(sli)
+	for i := 0; i < n; i++ {
+		sum += float64(sli[i])
+		square += math.Pow(float64(sli[i]), 2)
 	}
-	result = math.Sqrt((square) / float64(len(sli)-1))
+
+	result = (square - sum)/float64(n - 1)
 	return
 }
 func Std_int(sli []int) (result float64) {
-	square := 0.0
-
-	mean := float64(Sum_int(sli)) / float64(len(sli))
-
-	for i := 0; i < len(sli); i++ {
-		square += math.Pow(float64(sli[i])-mean, 2)
+	square := 0.
+	sum := 0.
+	n := len(sli)
+	for i := 0; i < n; i++ {
+		sum += float64(sli[i])
+		square += math.Pow(float64(sli[i]), 2)
 	}
-	result = math.Sqrt((square) / float64(len(sli)-1))
+
+	result = (square - sum)/float64(n - 1)
 	return
 }
 
