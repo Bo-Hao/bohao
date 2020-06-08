@@ -342,7 +342,8 @@ func Std(sli []float64) (result float64) {
 		square += math.Pow(float64(sli[i]), 2)
 	}
 
-	result = (square - sum)/float64(n - 1)
+	result = math.Sqrt((square - math.Pow(sum, 2)/float64(n))/float64(n - 1))
+	
 	return
 }
 func Std_int(sli []int) (result float64) {
@@ -354,7 +355,7 @@ func Std_int(sli []int) (result float64) {
 		square += math.Pow(float64(sli[i]), 2)
 	}
 
-	result = (square - sum)/float64(n - 1)
+	result = math.Sqrt((square - math.Pow(sum, 2)/float64(n))/float64(n - 1))
 	return
 }
 
