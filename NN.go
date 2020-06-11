@@ -27,6 +27,8 @@ type NetworkStruction struct {
 	Dropout []float64
 	Act     []ActivationFunc
 	Bias    bool
+	Normal  bool
+	NormalSize float64
 }
 
 // Stock the fitting parameters.
@@ -60,6 +62,8 @@ type NN struct {
 	Pred    *gorgonia.Node
 	PredVal gorgonia.Value
 
+	Normal   bool
+	NormalSize float64
 	FitStock Stock
 }
 
@@ -98,17 +102,19 @@ func NewNN(g *gorgonia.ExprGraph, S NetworkStruction) *NN {
 				tensor.Float64,
 				gorgonia.WithShape(1, S.Neuron[i+1]),
 				gorgonia.WithName("b"+strconv.Itoa(i)),
-				gorgonia.WithInit(gorgonia.Uniform(0.5, 0.8)),
+				gorgonia.WithInit(gorgonia.Uniform(-1, 1)),
 			))
 		}
 	}
 
 	return &NN{
-		G: g,
-		W: Ns,
-		B: Bs,
-		D: S.Dropout,
-		A: S.Act,
+		G:      g,
+		W:      Ns,
+		B:      Bs,
+		D:      S.Dropout,
+		A:      S.Act,
+		Normal: S.Normal,
+		NormalSize: S.NormalSize, 
 	}
 }
 
@@ -133,6 +139,7 @@ func (m *NN) Forward(x *gorgonia.Node) (err error) {
 				log.Fatal("mul wrong ", err)
 			}
 		}
+
 		drop, err := gorgonia.Dropout(ldot[i], m.D[i])
 		if err != nil {
 			log.Printf("Can't drop!")
@@ -178,7 +185,11 @@ func (m *NN) Predict(x [][]float64) [][]float64 {
 	batches := int(math.Ceil(float64(sampleSize) / float64(batchSize)))
 
 	//Normalize the input data. And stock the information into m.FitStock.
-	input_x, _, _ := Normalized(x)
+	input_x := (x)
+	if m.Normal {
+		input_x, _, _ = Normalized(x, m.NormalSize)
+	}
+
 	//input_x := x
 	x_oneDim := ToOneDimSlice(input_x)
 	for i := 0; i < inputShape; i++ {
@@ -237,7 +248,11 @@ func (m *NN) Predict(x [][]float64) [][]float64 {
 	}
 
 	// generalize the output using the data which stock in m.FitStock.
-	prediction_gen := Generalize(prediction, m.FitStock.max_list_y, m.FitStock.min_list_y)
+	prediction_gen := prediction
+	if m.Normal {
+		prediction_gen = Generalize(prediction, m.FitStock.max_list_y, m.FitStock.min_list_y, m.NormalSize)
+	}
+
 	//prediction_gen := prediction
 	return prediction_gen
 }
@@ -245,15 +260,19 @@ func (m *NN) Predict(x [][]float64) [][]float64 {
 func (m *NN) Fit(x_, y_ [][]float64, para Parameter) {
 	//Normalize the input data. And stock the information into m.FitStock.
 	S := Stock{}
-	input_x, max_list_x, min_list_x := Normalized(x_)
-	S.max_list_x = max_list_x
-	S.min_list_x = min_list_x
 
-	input_y, max_list_y, min_list_y := Normalized(y_)
-	S.max_list_y = max_list_y
-	S.min_list_y = min_list_y
-	/* input_x := x_
-	input_y := y_ */
+	input_x := x_
+	input_y := y_
+	if m.Normal {
+		n_x, max_list_x, min_list_x := Normalized(x_, m.NormalSize)
+		input_x = n_x
+		S.max_list_x = max_list_x
+		S.min_list_x = min_list_x
+		n_y, max_list_y, min_list_y := Normalized(y_, 2*m.NormalSize)
+		input_y = n_y
+		S.max_list_y = max_list_y
+		S.min_list_y = min_list_y
+	}
 
 	// set S into struct m.
 	m.FitStock = S
@@ -353,7 +372,7 @@ func (m *NN) Fit(x_, y_ [][]float64, para Parameter) {
 			}
 
 			// Print cost
-			if epoch%50 == 0 {
+			if epoch%100 == 0 {
 				fmt.Println("Iteration: ", epoch, "  Cost: ", costVal)
 			}
 			// Stock it.
@@ -366,8 +385,13 @@ func (m *NN) Fit(x_, y_ [][]float64, para Parameter) {
 
 		// Start epoches training
 		for epoch := 0; epoch < para.Epoches; epoch++ {
+			if epoch == 500{
+				solver = gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(batchSize)), gorgonia.WithLearnRate(para.Lr/10))
+			}
 			// Start batches...
 			for b := 0; b < batches; b++ {
+				
+				
 				// Handling the
 				start := b * batchSize
 				end := start + batchSize
@@ -426,7 +450,7 @@ func (m *NN) Fit(x_, y_ [][]float64, para Parameter) {
 			}
 
 			// Print cost
-			if epoch%50 == 0 {
+			if epoch%100 == 0 {
 				fmt.Println("Iteration: ", epoch, "  Cost: ", costVal)
 			}
 			// Stock it.

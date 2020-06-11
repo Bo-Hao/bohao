@@ -342,8 +342,8 @@ func Std(sli []float64) (result float64) {
 		square += math.Pow(float64(sli[i]), 2)
 	}
 
-	result = math.Sqrt((square - math.Pow(sum, 2)/float64(n))/float64(n - 1))
-	
+	result = math.Sqrt((square - math.Pow(sum, 2)/float64(n)) / float64(n-1))
+
 	return
 }
 func Std_int(sli []int) (result float64) {
@@ -355,7 +355,7 @@ func Std_int(sli []int) (result float64) {
 		square += math.Pow(float64(sli[i]), 2)
 	}
 
-	result = math.Sqrt((square - math.Pow(sum, 2)/float64(n))/float64(n - 1))
+	result = math.Sqrt((square - math.Pow(sum, 2)/float64(n)) / float64(n-1))
 	return
 }
 
@@ -364,9 +364,11 @@ func Mean(sli []float64) (mean float64) {
 	return
 }
 
-func Normalized(rawData [][]float64) ([][]float64, []float64, []float64) {
+func Normalized(rawData [][]float64, NormalSize float64) ([][]float64, []float64, []float64) {
 	rawData_T := Transpose_float(rawData)
-
+	if NormalSize == 0. {
+		NormalSize = 1.
+	}
 	normData := make([][]float64, len(rawData))
 	for i := 0; i < len(rawData); i++ {
 		for j := 0; j < len(rawData[i]); j++ {
@@ -384,14 +386,18 @@ func Normalized(rawData [][]float64) ([][]float64, []float64, []float64) {
 			if max_list[j]-min_list[j] == 0.0 {
 				normData[i][j] = 0
 			} else {
-				normData[i][j] = 2*(rawData[i][j]-min_list[j])/(max_list[j]-min_list[j]) - 1.
+				normData[i][j] = 2*NormalSize*(rawData[i][j]-min_list[j])/(max_list[j]-min_list[j]) - NormalSize
 			}
 		}
 	}
 	return normData, max_list, min_list
 }
 
-func Generalize(normData [][]float64, max_list, min_list []float64) [][]float64 {
+func Generalize(normData [][]float64, max_list, min_list []float64, NormalSize float64) [][]float64 {
+	if NormalSize == 0. {
+		NormalSize = 1.
+	}
+	NormalSize = NormalSize * 2
 	rawData := make([][]float64, len(normData))
 	for i := 0; i < len(normData); i++ {
 		for j := 0; j < len(normData[i]); j++ {
@@ -400,7 +406,7 @@ func Generalize(normData [][]float64, max_list, min_list []float64) [][]float64 
 	}
 	for i := 0; i < len(normData); i++ {
 		for j := 0; j < len(normData[i]); j++ {
-			rawData[i][j] = (normData[i][j]+1)*(max_list[j]-min_list[j])/2 + min_list[j]
+			rawData[i][j] = (normData[i][j]+NormalSize)*(max_list[j]-min_list[j])/NormalSize/2 + min_list[j]
 		}
 	}
 
@@ -442,11 +448,11 @@ func Quantiles(list []float64) (q_list []float64) {
 	sort.Float64s(list)
 	for q := 0.; q <= 4.; q += 1. {
 		indx := float64(length) / 4. * float64(q)
-		
+
 		if indx == math.Ceil(indx) {
 			q_list = append(q_list, list[int(indx)])
 		} else {
-			q_list = append(q_list, (list[int(indx) - 1]+  list[int(indx)])/2)
+			q_list = append(q_list, (list[int(indx)-1]+list[int(indx)])/2)
 		}
 	}
 	return
