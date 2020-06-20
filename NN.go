@@ -183,6 +183,7 @@ func (n *NN) Predict(x [][]float64) [][]float64 {
 	}
 	batches := int(math.Ceil(float64(sampleSize) / float64(batchSize)))
 
+	//----------------------------------------------------------------------Create a New Model----------------------------------------------------------------------------------------------------
 	var ww, bb []*gorgonia.Node
 	new_G := gorgonia.NewGraph()
 	for i := 0; i < len(n.W); i++ {
@@ -206,6 +207,8 @@ func (n *NN) Predict(x [][]float64) [][]float64 {
 		Normal:     n.Normal,
 		NormalSize: n.NormalSize,
 	}
+	//-----------------------------------------------------------------------------Create a New Model---------------------------------------------------------------------------------------------
+
 	//Normalize the input data. And stock the information into m.FitStock.
 	input_x := (x)
 	if m.Normal {
@@ -488,7 +491,6 @@ func (m *NN) Fit(x_, y_ [][]float64, para Parameter) {
 
 	} else if para.Solver == "Adam" {
 		solver := gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(batchSize)), gorgonia.WithLearnRate(para.Lr))
-	
 		// Start epoches training
 		for epoch := 0; epoch < para.Epoches; epoch++ {
 			if epoch == 500{
