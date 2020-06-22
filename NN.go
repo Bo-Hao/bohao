@@ -23,11 +23,11 @@ type Stock struct {
 
 // Use as the input of newNN func. Neuron mean the number of node of each layer. Dropout mean the dropout ratio and Act denote the activation func of each layer.
 type NetworkStruction struct {
-	Neuron  []int
-	Dropout []float64
-	Act     []ActivationFunc
-	Bias    bool
-	Normal  bool
+	Neuron     []int
+	Dropout    []float64
+	Act        []ActivationFunc
+	Bias       bool
+	Normal     bool
 	NormalSize float64
 }
 
@@ -62,9 +62,9 @@ type NN struct {
 	Pred    *gorgonia.Node
 	PredVal gorgonia.Value
 
-	Normal   bool
+	Normal     bool
 	NormalSize float64
-	FitStock Stock
+	FitStock   Stock
 }
 
 // Return the Nodes that should be optimized.
@@ -108,13 +108,13 @@ func NewNN(g *gorgonia.ExprGraph, S NetworkStruction) *NN {
 	}
 
 	return &NN{
-		G:      g,
-		W:      Ns,
-		B:      Bs,
-		D:      S.Dropout,
-		A:      S.Act,
-		Normal: S.Normal,
-		NormalSize: S.NormalSize, 
+		G:          g,
+		W:          Ns,
+		B:          Bs,
+		D:          S.Dropout,
+		A:          S.Act,
+		Normal:     S.Normal,
+		NormalSize: S.NormalSize,
 	}
 }
 
@@ -171,7 +171,7 @@ func (m NN) ValueToFloatSlice() (result [][]float64) {
 	}
 	return
 }
-func (n *NN) Predict(x [][]float64) [][]float64 {
+func (n *NN) Predict(x [][]float64) (prediction_gen [][]float64) {
 	// Define the needed parameters.
 	inputShape := n.W[0].Shape()[0]
 	sampleSize := len(x)
@@ -198,11 +198,15 @@ func (n *NN) Predict(x [][]float64) [][]float64 {
 		bb = append(bb, b)
 	}
 
+	var zero_drop []float64
+	for i := 0; i < len(n.D); i ++{
+		zero_drop = append(zero_drop, 0.)
+	}
 	m := NN{
 		G:          new_G,
 		W:          ww,
 		B:          bb,
-		D:          n.D,
+		D:          zero_drop,
 		A:          n.A,
 		Normal:     n.Normal,
 		NormalSize: n.NormalSize,
@@ -210,12 +214,14 @@ func (n *NN) Predict(x [][]float64) [][]float64 {
 	//-----------------------------------------------------------------------------Create a New Model---------------------------------------------------------------------------------------------
 
 	//Normalize the input data. And stock the information into m.FitStock.
-	input_x := (x)
+
+	var input_x [][]float64
 	if m.Normal {
 		input_x, _, _ = Normalized(x, m.NormalSize)
+	}else {
+		input_x = x
 	}
 
-	//input_x := x
 	x_oneDim := ToOneDimSlice(input_x)
 	for i := 0; i < inputShape; i++ {
 		x_oneDim = append(x_oneDim, x_oneDim[len(x_oneDim)-inputShape+i])
@@ -269,102 +275,16 @@ func (n *NN) Predict(x [][]float64) [][]float64 {
 		} else {
 			prediction = append(prediction, m.ValueToFloatSlice()...)
 		}
-
 	}
 
 	// generalize the output using the data which stock in m.FitStock.
-	prediction_gen := prediction
 	if m.Normal {
 		prediction_gen = Generalize(prediction, n.FitStock.max_list_y, n.FitStock.min_list_y, m.NormalSize)
+	}else{
+		prediction_gen = prediction
 	}
-
-	//prediction_gen := prediction
 	return prediction_gen
 }
-/* func (m *NN) Predict(x [][]float64) [][]float64 {
-	// Define the needed parameters.
-	inputShape := m.W[0].Shape()[0]
-	sampleSize := len(x)
-	batchSize := sampleSize
-	if batchSize > sampleSize {
-		batchSize = sampleSize
-	} else if batchSize <= 1 {
-		batchSize = 2
-	}
-	batches := int(math.Ceil(float64(sampleSize) / float64(batchSize)))
-
-	//Normalize the input data. And stock the information into m.FitStock.
-	input_x := (x)
-	if m.Normal {
-		input_x, _, _ = Normalized(x, m.NormalSize)
-	}
-
-	//input_x := x
-	x_oneDim := ToOneDimSlice(input_x)
-	for i := 0; i < inputShape; i++ {
-		x_oneDim = append(x_oneDim, x_oneDim[len(x_oneDim)-inputShape+i])
-	}
-
-	// Construct the input data tensor.
-	xT := tensor.New(tensor.WithBacking(x_oneDim), tensor.WithShape(sampleSize+1, inputShape))
-
-	// make prediction in batch.
-	var prediction [][]float64
-
-	// Start batches
-	for b := 0; b < batches+1; b++ {
-		start := b * batchSize
-		end := start + batchSize
-		over := 0
-		if start >= sampleSize {
-			break
-		}
-		if end > sampleSize {
-			over = (end - sampleSize)
-			end = sampleSize
-		}
-
-		if over == 1 {
-			end += 1
-		}
-		//slice data Note: xT and xVal are same type but different size.
-		xVal, err := xT.Slice(sli{start, end})
-		if err != nil {
-			log.Fatal(err, "Can't slice the data")
-		}
-
-		// Define input node.
-		X := gorgonia.NewMatrix(m.G, tensor.Float64, gorgonia.WithShape(end-start, inputShape), gorgonia.WithName("X"))
-
-		// Construct forward pass and record it using tape machine.
-		m.Forward(X)
-
-		// Dump it, still need tape machine to activate the process.
-		gorgonia.Let(X, xVal)
-
-		vm := gorgonia.NewTapeMachine(m.G, gorgonia.BindDualValues(m.Learnables()...))
-		// Activate the tape machine.
-		vm.RunAll()
-		vm.Reset()
-
-		// Append the result.
-		if over == 1 {
-			prediction = append(prediction, m.ValueToFloatSlice()[0])
-		} else {
-			prediction = append(prediction, m.ValueToFloatSlice()...)
-		}
-
-	}
-
-	// generalize the output using the data which stock in m.FitStock.
-	prediction_gen := prediction
-	if m.Normal {
-		prediction_gen = Generalize(prediction, m.FitStock.max_list_y, m.FitStock.min_list_y, m.NormalSize)
-	}
-
-	//prediction_gen := prediction
-	return prediction_gen
-} */
 
 func (m *NN) Fit(x_, y_ [][]float64, para Parameter) {
 	//Normalize the input data. And stock the information into m.FitStock.
@@ -493,13 +413,12 @@ func (m *NN) Fit(x_, y_ [][]float64, para Parameter) {
 		solver := gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(batchSize)), gorgonia.WithLearnRate(para.Lr))
 		// Start epoches training
 		for epoch := 0; epoch < para.Epoches; epoch++ {
-			if epoch == 500{
+			if epoch == 500 {
 				solver = gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(batchSize)), gorgonia.WithLearnRate(para.Lr/10))
 			}
 			// Start batches...
 			for b := 0; b < batches; b++ {
-				
-				
+
 				// Handling the
 				start := b * batchSize
 				end := start + batchSize
