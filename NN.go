@@ -129,7 +129,6 @@ func (m *NN) Forward(x *gorgonia.Node) (err error) {
 
 	for i := 0; i < len(m.W); i++ {
 		if len(m.B) != 0 && i < len(m.W)-1 {
-
 			L1, err := gorgonia.Mul(l[i], m.W[i])
 			if err != nil {
 				panic(err)
