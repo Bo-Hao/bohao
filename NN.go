@@ -77,6 +77,7 @@ func (m *NN) Learnables() gorgonia.Nodes {
 		n.Add(m.B[i])
 	}
 
+
 	return n.ToSlice().Nodes()
 }
 
@@ -84,8 +85,7 @@ func (m *NN) Learnables() gorgonia.Nodes {
 func NewNN(g *gorgonia.ExprGraph, S NetworkStruction) *NN {
 	// Set random seed
 	rand.Seed(time.Now().Unix())
-	var Ns gorgonia.Nodes
-	var Bs gorgonia.Nodes
+	var Ns, Bs gorgonia.Nodes
 	for i := 0; i < len(S.Neuron)-1; i++ {
 		Ns = append(Ns, gorgonia.NewMatrix(
 			g,
@@ -102,15 +102,15 @@ func NewNN(g *gorgonia.ExprGraph, S NetworkStruction) *NN {
 				tensor.Float64,
 				gorgonia.WithShape(1, S.Neuron[i+1]),
 				gorgonia.WithName("b"+strconv.Itoa(i)),
-				gorgonia.WithInit(gorgonia.Uniform(-1, 1)),
+				gorgonia.WithInit(gorgonia.Uniform(-0.5, 0.5)),
 			))
 		}
 	}
 
 	return &NN{
-		G:          g,
-		W:          Ns,
-		B:          Bs,
+		G: g,
+		W: Ns,
+		B: Bs,
 		D:          S.Dropout,
 		A:          S.Act,
 		Normal:     S.Normal,
@@ -127,6 +127,7 @@ func (m *NN) Forward(x *gorgonia.Node) (err error) {
 	// initial the first layer
 	l[0] = x
 
+	// W X + B
 	for i := 0; i < len(m.W); i++ {
 		if len(m.B) != 0 && i < len(m.W)-1 {
 			L1, err := gorgonia.Mul(l[i], m.W[i])
@@ -143,19 +144,19 @@ func (m *NN) Forward(x *gorgonia.Node) (err error) {
 				log.Fatal("mul wrong ", err)
 			}
 		}
-
-		drop, err := gorgonia.Dropout(ldot[i], m.D[i])
+		
+		// Dropout
+		p[i], err = gorgonia.Dropout(ldot[i], m.D[i])
 		if err != nil {
 			log.Printf("Can't drop!")
 		}
-		p[i] = drop
 
 		//activation function
 		l[i+1] = gorgonia.Must(m.A[i](p[i]))
 
 	}
-	F := gorgonia.Must(m.A[len(m.A)-1](l[len(l)-1]))
-	m.Pred = F
+	
+	m.Pred = gorgonia.Must(m.A[len(m.A)-1](l[len(l)-1]))
 	gorgonia.Read(m.Pred, &m.PredVal)
 	return
 }
@@ -175,21 +176,9 @@ func (m NN) ValueToFloatSlice() (result [][]float64) {
 	}
 	return
 }
-func (n *NN) Predict(x [][]float64) (prediction_gen [][]float64) {
-	// Define the needed parameters.
-	inputShape := n.W[0].Shape()[0]
-	sampleSize := len(x)
-	batchSize := sampleSize
-	if batchSize > sampleSize {
-		batchSize = sampleSize
-	} else if batchSize <= 1 {
-		batchSize = 2
-	}
-	batches := int(math.Ceil(float64(sampleSize) / float64(batchSize)))
 
-	//----------------------------------------------------------------------Create a New Model----------------------------------------------------------------------------------------------------
+func (n *NN) Clone_model(new_G *gorgonia.ExprGraph) NN{
 	var ww, bb []*gorgonia.Node
-	new_G := gorgonia.NewGraph()
 	for i := 0; i < len(n.W); i++ {
 		xT := tensor.New(tensor.WithBacking(n.W[i].Value().Data()), tensor.WithShape(n.W[i].Shape()[0], n.W[i].Shape()[1]))
 		w := gorgonia.NodeFromAny(new_G, xT, gorgonia.WithName("w"+strconv.Itoa(i)), gorgonia.WithShape(n.W[i].Shape()[0], n.W[i].Shape()[1]))
@@ -202,27 +191,46 @@ func (n *NN) Predict(x [][]float64) (prediction_gen [][]float64) {
 		bb = append(bb, b)
 	}
 
-	var zero_drop []float64
-	for i := 0; i < len(n.D); i ++{
-		zero_drop = append(zero_drop, 0.)
-	}
-	m := NN{
+	return NN{
 		G:          new_G,
 		W:          ww,
 		B:          bb,
-		D:          zero_drop,
+		D:          n.D,
 		A:          n.A,
 		Normal:     n.Normal,
 		NormalSize: n.NormalSize,
+		FitStock: n.FitStock,
 	}
-	//-----------------------------------------------------------------------------Create a New Model---------------------------------------------------------------------------------------------
+}
+
+func (n *NN) Predict(x [][]float64) (prediction_gen [][]float64) {
+	// Define the needed parameters.
+	inputShape := n.W[0].Shape()[0]
+	sampleSize := len(x)
+	batchSize := sampleSize
+	if batchSize > sampleSize {
+		batchSize = sampleSize
+	} else if batchSize <= 1 {
+		batchSize = 2
+	}
+	batches := int(math.Ceil(float64(sampleSize) / float64(batchSize)))
+
+	
+	// Create a New Model
+	var zero_drop []float64
+	for i := 0; i < len(n.D); i++ {
+		zero_drop = append(zero_drop, 0.)
+	}
+	new_g := gorgonia.NewGraph()
+	m := n.Clone_model(new_g)
+	m.D = zero_drop
+	
 
 	//Normalize the input data. And stock the information into m.FitStock.
-
 	var input_x [][]float64
 	if m.Normal {
 		input_x, _, _ = Normalized(x, m.NormalSize)
-	}else {
+	} else {
 		input_x = x
 	}
 
@@ -284,7 +292,7 @@ func (n *NN) Predict(x [][]float64) (prediction_gen [][]float64) {
 	// generalize the output using the data which stock in m.FitStock.
 	if m.Normal {
 		prediction_gen = Generalize(prediction, n.FitStock.max_list_y, n.FitStock.min_list_y, m.NormalSize)
-	}else{
+	} else {
 		prediction_gen = prediction
 	}
 	return prediction_gen
@@ -517,7 +525,7 @@ func Example_Auto() {
 	S := NetworkStruction{
 		Neuron:  []int{4, 2, 1, 2, 4},
 		Dropout: []float64{0, 0, 0, 0, 0},
-		Act:     []ActivationFunc{Mish, Linear, Linear, Linear, Linear},
+		Act:     []ActivationFunc{gorgonia.Mish, Linear, Linear, Linear, Linear},
 	}
 	para := InitParameter()
 

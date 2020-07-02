@@ -2,7 +2,6 @@ package bohao
 
 import (
 	"fmt"
-	"log"
 	"math"
 	"sort"
 )
@@ -21,49 +20,6 @@ func AddOne(data [][]float64) (withOne [][]float64) {
 		withOne = append(withOne, append(data[i], 1.0))
 	}
 	return
-}
-
-func Matrix(value []float64, shape []int) [][]float64 {
-	row := shape[0]
-	col := shape[1]
-
-	if row*col != len(value) {
-		log.Fatal("Wrong length")
-	}
-
-	m := make([][]float64, row)
-
-	var ij int
-	ij = 0
-	for i := 0; i < row; i++ {
-		for j := 0; j < col; j++ {
-			m[i] = append(m[i], value[ij])
-			ij++
-		}
-	}
-	return m
-}
-
-func Dot(a [][]float64, b [][]float64) [][]float64 {
-	shape1 := []int{len(a), len(a[0])}
-	shape2 := []int{len(b), len(b[0])}
-
-	if shape1[1] != shape2[0] {
-		log.Fatal("wrong shape")
-	}
-
-	c := make([][]float64, shape1[0])
-	var elt float64
-	for i := 0; i < shape1[0]; i++ {
-		for j := 0; j < shape2[1]; j++ {
-			elt = 0.0
-			for k := 0; k < shape1[1]; k++ {
-				elt = elt + a[i][k]*b[k][j]
-			}
-			c[i] = append(c[i], elt)
-		}
-	}
-	return c
 }
 
 func Transpose(mat [][]float64) [][]float64 {
@@ -212,6 +168,40 @@ func RemoveDuplicateElement_int(addrs []int) []int {
 		}
 	}
 	return result
+}
+
+func EncodeYLabel(raw_y []string) ([]int, map[string]int){
+	label := RemoveDuplicateElement(raw_y)
+	sort.Strings(label)
+
+	label_map := make(map[string]int)
+	for i := 0; i < len(label); i++{
+		label_map[label[i]] = i
+	}
+	new_y := make([]int, len(raw_y))
+	for i := 0; i < len(raw_y); i ++{
+		new_y[i] = label_map[raw_y[i]]
+	}
+	return new_y, label_map
+}
+
+func ReverseMap_strToint(m map[string]int) (reversed_map map[int]string){
+	for key,value := range m {
+		reversed_map[value] = key
+	}
+	return 
+}
+
+func SumProduct(a, b []float64) (float64){
+	if len(a) != len(b){
+		panic("Wrong length for sum product")
+	}
+
+	sum := 0.
+	for i := 0; i < len(a); i ++{
+		sum += a[i] * b[i]
+	}
+	return sum 
 }
 
 func MaxSlice_int(v []int) (m int) {
@@ -365,7 +355,7 @@ func Mean(sli []float64) (mean float64) {
 }
 
 func Normalized(rawData [][]float64, NormalSize float64) ([][]float64, []float64, []float64) {
-	rawData_T := Transpose_float(rawData)
+	/* rawData_T := Transpose_float(rawData)
 	if NormalSize == 0. {
 		NormalSize = 1.
 	}
@@ -389,12 +379,38 @@ func Normalized(rawData [][]float64, NormalSize float64) ([][]float64, []float64
 				normData[i][j] = 2*NormalSize*(rawData[i][j]-min_list[j])/(max_list[j]-min_list[j]) - NormalSize
 			}
 		}
+	} */
+	if NormalSize == 0. {
+		NormalSize = 1.
+	}
+
+	rawData_T := Transpose_float(rawData)
+	normData := make([][]float64, len(rawData))
+	for i := 0; i < len(rawData); i++ {
+		for j := 0; j < len(rawData[i]); j++ {
+			normData[i] = append(normData[i], 0.0)
+		}
+	}
+	var max_list, min_list []float64
+	for i := 0; i < len(rawData_T); i++ {
+		max_list = append(max_list, Mean(rawData_T[i]))
+		min_list = append(min_list, Std(rawData_T[i]))
+	}
+
+	for i := 0; i < len(rawData); i++ {
+		for j := 0; j < len(rawData[i]); j++ {
+			if max_list[j]-min_list[j] == 0.0 {
+				normData[i][j] = 0
+			} else {
+				normData[i][j] = (rawData[i][j] - max_list[j]) / (min_list[j])
+			}
+		}
 	}
 	return normData, max_list, min_list
 }
 
 func Generalize(normData [][]float64, max_list, min_list []float64, NormalSize float64) [][]float64 {
-	if NormalSize == 0. {
+	/* if NormalSize == 0. {
 		NormalSize = 1.
 	}
 	NormalSize = NormalSize * 2
@@ -407,6 +423,20 @@ func Generalize(normData [][]float64, max_list, min_list []float64, NormalSize f
 	for i := 0; i < len(normData); i++ {
 		for j := 0; j < len(normData[i]); j++ {
 			rawData[i][j] = (normData[i][j]+NormalSize)*(max_list[j]-min_list[j])/NormalSize/2 + min_list[j]
+		}
+	} */
+	if NormalSize == 0. {
+		NormalSize = 1.
+	}
+	rawData := make([][]float64, len(normData))
+	for i := 0; i < len(normData); i++ {
+		for j := 0; j < len(normData[i]); j++ {
+			rawData[i] = append(rawData[i], 0.0)
+		}
+	}
+	for i := 0; i < len(normData); i++ {
+		for j := 0; j < len(normData[i]); j++ {
+			rawData[i][j] = normData[i][j]*min_list[j] + max_list[j]
 		}
 	}
 
