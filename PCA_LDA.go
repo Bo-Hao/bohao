@@ -72,10 +72,10 @@ func (P *PCA) decide_numcomp(dim string) int {
 			panic(err)
 		}
 	}
-	
+
 	if num_comp > len(P.Eigenvalue){
 		num_comp = len(P.Eigenvalue)
-	}else num_comp <= 0. {
+	}else if num_comp <= 0. {
 		panic("SHould be Natural number.")
 	}
 	return num_comp
