@@ -72,6 +72,7 @@ func (P *PCA) decide_numcomp(dim string) int {
 			panic(err)
 		}
 	}
+	
 	if num_comp > len(P.Eigenvalue){
 		num_comp = len(P.Eigenvalue)
 	}else num_comp <= 0. {
