@@ -90,6 +90,7 @@ func (P *PCA) Reduce_data_dim(data [][]float64, dim string) ([][]float64) {
 	for component := 0; component < num_comp; component++ {
 		vector := P.Eigenvector[component]
 		for i := 0; i < len(data); i ++{
+			fmt.Println(vector)
 			SumProduct(vector, data[i])
 			new_data[component] = append(new_data[component], SumProduct(vector, data[i]))
 		}

@@ -374,7 +374,7 @@ func Normalized(rawData [][]float64, NormalSize float64) ([][]float64, []float64
 
 	for i := 0; i < len(rawData); i++ {
 		for j := 0; j < len(rawData[i]); j++ {
-			if max_list[j]-min_list[j] == 0.0 {
+			if (min_list[j]) == 0.0 {
 				normData[i][j] = 0
 			} else {
 				normData[i][j] = (rawData[i][j] - max_list[j]) / (min_list[j])
