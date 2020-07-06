@@ -306,9 +306,7 @@ func Std(sli []float64) (result float64) {
 		sum += float64(sli[i])
 		square += math.Pow(float64(sli[i]), 2)
 	}
-
-	result = math.Sqrt((square - math.Pow(sum, 2)/float64(n)) / float64(n-1))
-
+	result = math.Sqrt(math.Abs(square - math.Pow(sum, 2)/float64(n)) / float64(n -1))
 	return
 }
 func Std_int(sli []int) (result float64) {
@@ -320,7 +318,7 @@ func Std_int(sli []int) (result float64) {
 		square += math.Pow(float64(sli[i]), 2)
 	}
 
-	result = math.Sqrt((square - math.Pow(sum, 2)/float64(n)) / float64(n-1))
+	result = math.Sqrt(math.Abs(square - math.Pow(sum, 2)/float64(n)) / float64(n-1))
 	return
 }
 
@@ -371,11 +369,12 @@ func Normalized(rawData [][]float64, NormalSize float64) ([][]float64, []float64
 		max_list = append(max_list, Mean(rawData_T[i]))
 		min_list = append(min_list, Std(rawData_T[i]))
 	}
+	
 
 	for i := 0; i < len(rawData); i++ {
 		for j := 0; j < len(rawData[i]); j++ {
-			if (min_list[j]) == 0.0 {
-				normData[i][j] = 0
+			if math.Abs(min_list[j]) <= 0.00000001 {
+				normData[i][j] = (rawData[i][j] - max_list[j])
 			} else {
 				normData[i][j] = (rawData[i][j] - max_list[j]) / (min_list[j])
 			}

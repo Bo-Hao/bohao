@@ -77,7 +77,6 @@ func (m *NN) Learnables() gorgonia.Nodes {
 		n.Add(m.B[i])
 	}
 
-
 	return n.ToSlice().Nodes()
 }
 
@@ -108,9 +107,9 @@ func NewNN(g *gorgonia.ExprGraph, S NetworkStruction) *NN {
 	}
 
 	return &NN{
-		G: g,
-		W: Ns,
-		B: Bs,
+		G:          g,
+		W:          Ns,
+		B:          Bs,
 		D:          S.Dropout,
 		A:          S.Act,
 		Normal:     S.Normal,
@@ -144,7 +143,7 @@ func (m *NN) Forward(x *gorgonia.Node) (err error) {
 				log.Fatal("mul wrong ", err)
 			}
 		}
-		
+
 		// Dropout
 		p[i], err = gorgonia.Dropout(ldot[i], m.D[i])
 		if err != nil {
@@ -155,7 +154,7 @@ func (m *NN) Forward(x *gorgonia.Node) (err error) {
 		l[i+1] = gorgonia.Must(m.A[i](p[i]))
 
 	}
-	
+
 	m.Pred = gorgonia.Must(m.A[len(m.A)-1](l[len(l)-1]))
 	gorgonia.Read(m.Pred, &m.PredVal)
 	return
@@ -177,7 +176,7 @@ func (m NN) ValueToFloatSlice() (result [][]float64) {
 	return
 }
 
-func (n *NN) Clone_model(new_G *gorgonia.ExprGraph) NN{
+func (n *NN) Clone_model(new_G *gorgonia.ExprGraph) NN {
 	var ww, bb []*gorgonia.Node
 	for i := 0; i < len(n.W); i++ {
 		xT := tensor.New(tensor.WithBacking(n.W[i].Value().Data()), tensor.WithShape(n.W[i].Shape()[0], n.W[i].Shape()[1]))
@@ -199,7 +198,7 @@ func (n *NN) Clone_model(new_G *gorgonia.ExprGraph) NN{
 		A:          n.A,
 		Normal:     n.Normal,
 		NormalSize: n.NormalSize,
-		FitStock: n.FitStock,
+		FitStock:   n.FitStock,
 	}
 }
 
@@ -215,7 +214,6 @@ func (n *NN) Predict(x [][]float64) (prediction_gen [][]float64) {
 	}
 	batches := int(math.Ceil(float64(sampleSize) / float64(batchSize)))
 
-	
 	// Create a New Model
 	var zero_drop []float64
 	for i := 0; i < len(n.D); i++ {
@@ -224,7 +222,6 @@ func (n *NN) Predict(x [][]float64) (prediction_gen [][]float64) {
 	new_g := gorgonia.NewGraph()
 	m := n.Clone_model(new_g)
 	m.D = zero_drop
-	
 
 	//Normalize the input data. And stock the information into m.FitStock.
 	var input_x [][]float64
@@ -486,6 +483,9 @@ func (m *NN) Fit(x_, y_ [][]float64, para Parameter) {
 				vm.RunAll()
 				solver.Step(gorgonia.NodesToValueGrads(m.Learnables()))
 				vm.Reset()
+
+				/* fmt.Println("----------------------------------------------------------------")
+				fmt.Println(m.Pred.Value()) */
 			}
 
 			// Print cost
