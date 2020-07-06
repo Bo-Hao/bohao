@@ -38,7 +38,7 @@ type LossFunc func(Pred, y *gorgonia.Node) *gorgonia.Node
 
 // Simple RMS error loss function
 func RMSError(Pred, y *gorgonia.Node) *gorgonia.Node {
-	losses := gorgonia.Must(gorgonia.Square(gorgonia.Must(gorgonia.Sub(Pred, y))))
+	losses := gorgonai.Must(gorgonia.Sqrt(gorgonia.Must(gorgonia.Square(gorgonia.Must(gorgonia.Sub(Pred, y))))))
 	cost := gorgonia.Must(gorgonia.Mean(losses))
 	return cost
 }
