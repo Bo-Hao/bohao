@@ -22,19 +22,6 @@ func AddOne(data [][]float64) (withOne [][]float64) {
 	return
 }
 
-func Transpose(mat [][]float64) [][]float64 {
-	row := len(mat)
-	col := len(mat[0])
-
-	t := make([][]float64, col)
-	for j := 0; j < col; j++ {
-		for i := 0; i < row; i++ {
-			t[j] = append(t[j], mat[i][j])
-		}
-	}
-	return t
-}
-
 func IsIn_int(num int, sli []int) bool {
 	respond := false
 	for i := 0; i < len(sli); i++ {
@@ -65,20 +52,6 @@ func IsIn_str(num string, sli []string) bool {
 	return respond
 }
 
-func InverseSlice_int(sli []int) (result []int) {
-	for i := 0; i < len(sli); i++ {
-		result = append(result, sli[len(sli)-1-i])
-	}
-	return
-}
-
-func InverseSlice_float64(sli []float64) (result []float64) {
-	for i := 0; i < len(sli); i++ {
-		result = append(result, sli[len(sli)-1-i])
-	}
-	return
-}
-
 func Transpose_int(mat [][]int) [][]int {
 	row := len(mat)
 	col := len(mat[0])
@@ -93,6 +66,7 @@ func Transpose_int(mat [][]int) [][]int {
 }
 
 func Transpose_float(mat [][]float64) [][]float64 {
+
 	row := len(mat)
 	col := len(mat[0])
 
@@ -103,6 +77,7 @@ func Transpose_float(mat [][]float64) [][]float64 {
 		}
 	}
 	return t
+
 }
 
 func Transpose_str(mat [][]string) [][]string {
@@ -170,38 +145,38 @@ func RemoveDuplicateElement_int(addrs []int) []int {
 	return result
 }
 
-func EncodeYLabel(raw_y []string) ([]int, map[string]int){
+func EncodeYLabel(raw_y []string) ([]int, map[string]int) {
 	label := RemoveDuplicateElement(raw_y)
 	sort.Strings(label)
 
 	label_map := make(map[string]int)
-	for i := 0; i < len(label); i++{
+	for i := 0; i < len(label); i++ {
 		label_map[label[i]] = i
 	}
 	new_y := make([]int, len(raw_y))
-	for i := 0; i < len(raw_y); i ++{
+	for i := 0; i < len(raw_y); i++ {
 		new_y[i] = label_map[raw_y[i]]
 	}
 	return new_y, label_map
 }
 
-func ReverseMap_strToint(m map[string]int) (reversed_map map[int]string){
-	for key,value := range m {
+func ReverseMap_strToint(m map[string]int) (reversed_map map[int]string) {
+	for key, value := range m {
 		reversed_map[value] = key
 	}
-	return 
+	return
 }
 
-func SumProduct(a, b []float64) (float64){
-	if len(a) != len(b){
+func SumProduct(a, b []float64) float64 {
+	if len(a) != len(b) {
 		panic("Wrong length for sum product")
 	}
 
 	sum := 0.
-	for i := 0; i < len(a); i ++{
+	for i := 0; i < len(a); i++ {
 		sum += a[i] * b[i]
 	}
-	return sum 
+	return sum
 }
 
 func MaxSlice_int(v []int) (m int) {
