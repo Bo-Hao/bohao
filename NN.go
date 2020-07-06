@@ -325,8 +325,10 @@ func (m *NN) Fit(x_, y_ [][]float64, para Parameter) {
 	}
 
 	// Define shapes
-	inputShape := m.W[0].Shape()[0]
-	outputShape := m.W[len(m.W)-1].Shape()[1]
+	//inputShape := m.W[0].Shape()[0]
+	//outputShape := m.W[len(m.W)-1].Shape()[1]
+	inputShape := len(x_[0])
+	outputShape := len(y_[0])
 
 	// batch size will not greater than sample size and won't less than 2. Since batch size equal to 1 will crash the model.
 	batchSize := para.BatchSize
