@@ -131,6 +131,7 @@ func (m *NN) Forward(x *gorgonia.Node) (err error) {
 		if len(m.B) != 0 && i < len(m.W)-1 {
 			L1, err := gorgonia.Mul(l[i], m.W[i])
 			if err != nil {
+				fmt.Println(l[i].Shape(), m.W[i].Shape())
 				panic(err)
 			}
 			ldot[i], err = gorgonia.BroadcastAdd(L1, m.B[i], nil, []byte{0})
