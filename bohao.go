@@ -383,6 +383,26 @@ func Normalized(rawData [][]float64, NormalSize float64) ([][]float64, []float64
 	return normData, max_list, min_list
 }
 
+func Normalize_adjust(rawData [][]float64, max_list, min_list []float64) ([][]float64) {
+	normData := make([][]float64, len(rawData))
+	for i := 0; i < len(rawData); i++ {
+		for j := 0; j < len(rawData[i]); j++ {
+			normData[i] = append(normData[i], 0.0)
+		}
+	}
+
+	for i := 0; i < len(rawData); i++ {
+		for j := 0; j < len(rawData[i]); j++ {
+			if math.Abs(min_list[j]) <= 0.00000001 {
+				normData[i][j] = (rawData[i][j] - max_list[j])
+			} else {
+				normData[i][j] = (rawData[i][j] - max_list[j]) / (min_list[j])
+			}
+		}
+	}
+	return normData
+}
+
 func Generalize(normData [][]float64, max_list, min_list []float64, NormalSize float64) [][]float64 {
 	/* if NormalSize == 0. {
 		NormalSize = 1.

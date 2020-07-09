@@ -3,7 +3,6 @@ package bohao
 import (
 	"fmt"
 	"log"
-	"math"
 	"math/rand"
 	"strconv"
 	"time"
@@ -49,6 +48,17 @@ func InitParameter() Parameter {
 		Solver:    "RMSProp",
 		Lossfunc:  RMSError,
 	}
+}
+
+type fit_delivery struct {
+	batches     int
+	batchsize   int
+	inputShape  int
+	outputShape int
+	costVal     gorgonia.Value
+	para        Parameter
+	samplesize  int
+	S           Stock
 }
 
 // Neural Network itself.
@@ -101,7 +111,7 @@ func NewNN(g *gorgonia.ExprGraph, S NetworkStruction) *NN {
 				tensor.Float64,
 				gorgonia.WithShape(1, S.Neuron[i+1]),
 				gorgonia.WithName("b"+strconv.Itoa(i)),
-				gorgonia.WithInit(gorgonia.Uniform(-0.5, 0.5)),
+				gorgonia.WithInit(gorgonia.Uniform(-1. , 1.)),
 			))
 		}
 	}
@@ -207,13 +217,7 @@ func (n *NN) Predict(x [][]float64) (prediction_gen [][]float64) {
 	// Define the needed parameters.
 	inputShape := n.W[0].Shape()[0]
 	sampleSize := len(x)
-	batchSize := sampleSize
-	if batchSize > sampleSize {
-		batchSize = sampleSize
-	} else if batchSize <= 1 {
-		batchSize = 2
-	}
-	batches := int(math.Ceil(float64(sampleSize) / float64(batchSize)))
+	batchSize, batches := Cal_Batch(sampleSize, sampleSize) 
 
 	// Create a New Model
 	var zero_drop []float64
@@ -225,11 +229,9 @@ func (n *NN) Predict(x [][]float64) (prediction_gen [][]float64) {
 	m.D = zero_drop
 
 	//Normalize the input data. And stock the information into m.FitStock.
-	var input_x [][]float64
+	input_x := x
 	if m.Normal {
 		input_x, _, _ = Normalized(x, m.NormalSize)
-	} else {
-		input_x = x
 	}
 
 	x_oneDim := ToOneDimSlice(input_x)
@@ -297,20 +299,14 @@ func (n *NN) Predict(x [][]float64) (prediction_gen [][]float64) {
 }
 
 func (m *NN) Fit(x_, y_ [][]float64, para Parameter) {
-	//Normalize the input data. And stock the information into m.FitStock.
-	S := Stock{}
-
 	input_x := x_
 	input_y := y_
+
+	//Normalize the input data. And stock the information into m.FitStock.
+	S := Stock{}
 	if m.Normal {
-		n_x, max_list_x, min_list_x := Normalized(x_, m.NormalSize)
-		input_x = n_x
-		S.max_list_x = max_list_x
-		S.min_list_x = min_list_x
-		n_y, max_list_y, min_list_y := Normalized(y_, 2*m.NormalSize)
-		input_y = n_y
-		S.max_list_y = max_list_y
-		S.min_list_y = min_list_y
+		input_x, S.max_list_x, S.min_list_x = Normalized(x_, m.NormalSize)
+		input_y, S.max_list_y, S.min_list_y = Normalized(y_, m.NormalSize)
 	}
 
 	// set S into struct m.
@@ -322,23 +318,15 @@ func (m *NN) Fit(x_, y_ [][]float64, para Parameter) {
 	sampleSize := len(input_x)
 
 	if sampleSize != len(input_y) {
-		log.Fatal("x and y are not in the same size!")
+		panic("x and y are not in the same size!")
 	}
 
 	// Define shapes
-	//inputShape := m.W[0].Shape()[0]
-	//outputShape := m.W[len(m.W)-1].Shape()[1]
-	inputShape := len(x_[0])
-	outputShape := len(y_[0])
+	inputShape := m.W[0].Shape()[0]
+	outputShape := m.W[len(m.W)-1].Shape()[1]
 
 	// batch size will not greater than sample size and won't less than 2. Since batch size equal to 1 will crash the model.
-	batchSize := para.BatchSize
-	if batchSize > sampleSize {
-		batchSize = sampleSize
-	} else if batchSize <= 1 {
-		batchSize = 2
-	}
-	batches := sampleSize / batchSize
+	batchSize, batches := Cal_Batch(sampleSize, para.BatchSize) 
 
 	// Construct the input data tensor and node.
 	xT := tensor.New(tensor.WithBacking(x_oneDim), tensor.WithShape(sampleSize, inputShape))
@@ -347,162 +335,200 @@ func (m *NN) Fit(x_, y_ [][]float64, para Parameter) {
 	// costVal will be used outside the loop.
 	var costVal gorgonia.Value
 
+	delivery := fit_delivery{
+		batches:     batches,
+		batchsize:   batchSize,
+		inputShape:  inputShape,
+		outputShape: outputShape,
+		costVal:     costVal,
+		para:        para,
+		samplesize:  sampleSize,
+		S:           S,
+	}
 	// Since different optimizer are not the same type. We should rewrite code.
 	if para.Solver == "RMSProp" {
-		solver := gorgonia.NewRMSPropSolver(gorgonia.WithBatchSize(float64(batchSize)), gorgonia.WithLearnRate(para.Lr))
-
-		// Start epoches training
-		for epoch := 1; epoch < para.Epoches+1; epoch++ {
-			// Start batches...
-			for b := 0; b < batches; b++ {
-				// Handling the
-				start := b * batchSize
-				end := start + batchSize
-				over := 0
-				if start >= sampleSize {
-					break
-				}
-				if end > sampleSize {
-					over = end - sampleSize
-					end = sampleSize
-				}
-
-				//slice data Note: xT and xVal are same type but different size. So does yT and yVal.
-				xVal, err := xT.Slice(sli{start, end})
-				if err != nil {
-					log.Fatal(err, "Can't slice the X data")
-				}
-				yVal, err := yT.Slice(sli{start, end})
-				if err != nil {
-					log.Fatal(err, "Can't slice the Y data")
-				}
-
-				// Define input output node
-				X := gorgonia.NewMatrix(m.G, tensor.Float64, gorgonia.WithShape(batchSize-over, inputShape), gorgonia.WithName("X"))
-				y := gorgonia.NewMatrix(m.G, tensor.Float64, gorgonia.WithShape(batchSize-over, outputShape), gorgonia.WithName("y"))
-
-				// forward pass
-				err = m.Forward(X)
-				if err != nil {
-					log.Fatal(err, "Forward pass fail")
-				}
-
-				// Define the loss function.
-				cost := para.Lossfunc(m.Pred, y)
-
-				// Record cost change
-				gorgonia.Read(cost, &costVal)
-
-				// Update the gradient.
-				if _, err = gorgonia.Grad(cost, m.Learnables()...); err != nil {
-					log.Fatal("Unable to udate gradient")
-				}
-
-				// Define the tape machine to record the gradient change for the nodes which should be optimized or activated.
-				vm := gorgonia.NewTapeMachine(m.G, gorgonia.BindDualValues(m.Learnables()...))
-
-				// Dump it
-				gorgonia.Let(X, xVal)
-				gorgonia.Let(y, yVal)
-
-				// Optimizing...
-				vm.Reset()
-				vm.RunAll()
-				solver.Step(gorgonia.NodesToValueGrads(m.Learnables()))
-				vm.Reset()
-			}
-
-			// Print cost
-			if epoch%100 == 0 {
-				fmt.Println("Iteration: ", epoch, "  Cost: ", costVal)
-			}
-			// Stock it.
-			S.LossRecord = append(S.LossRecord, []float64{float64(epoch), costVal.Data().(float64)})
-		}
-		m.FitStock.LossRecord = S.LossRecord
+		m._RMSPropTrain(xT, yT, delivery)
 
 	} else if para.Solver == "Adam" {
-		solver := gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(batchSize)), gorgonia.WithLearnRate(para.Lr))
-		// Start epoches training
-		for epoch := 0; epoch < para.Epoches; epoch++ {
-			if epoch == 500 {
-				solver = gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(batchSize)), gorgonia.WithLearnRate(para.Lr/10))
-			}
-			// Start batches...
-			for b := 0; b < batches; b++ {
-
-				// Handling the
-				start := b * batchSize
-				end := start + batchSize
-				over := 0
-				if start >= sampleSize {
-					break
-				}
-				if end > sampleSize {
-					over = end - sampleSize
-					end = sampleSize
-				}
-
-				//slice data Note: xT and xVal are same type but different size. So does yT and yVal.
-				xVal, err := xT.Slice(sli{start, end})
-				if err != nil {
-					log.Fatal(err, "Can't slice the X data")
-				}
-				yVal, err := yT.Slice(sli{start, end})
-				if err != nil {
-					log.Fatal(err, "Can't slice the Y data")
-				}
-
-				// Define input output node
-				X := gorgonia.NewMatrix(m.G, tensor.Float64, gorgonia.WithShape(batchSize-over, inputShape), gorgonia.WithName("X"))
-				y := gorgonia.NewMatrix(m.G, tensor.Float64, gorgonia.WithShape(batchSize-over, outputShape), gorgonia.WithName("y"))
-
-				// forward pass
-				err = m.Forward(X)
-				if err != nil {
-					log.Fatal(err, "Forward pass fail")
-				}
-
-				// Define the loss function.
-				cost := para.Lossfunc(m.Pred, y)
-
-				// Record cost change
-				gorgonia.Read(cost, &costVal)
-
-				// Update the gradient.
-				if _, err = gorgonia.Grad(cost, m.Learnables()...); err != nil {
-					log.Fatal("Unable to udate gradient")
-				}
-
-				// Define the tape machine to record the gradient change for the nodes which should be optimized or activated.
-				vm := gorgonia.NewTapeMachine(m.G, gorgonia.BindDualValues(m.Learnables()...))
-
-				// Dump it
-				gorgonia.Let(X, xVal)
-				gorgonia.Let(y, yVal)
-
-				// Optimizing...
-				vm.Reset()
-				vm.RunAll()
-				solver.Step(gorgonia.NodesToValueGrads(m.Learnables()))
-				vm.Reset()
-
-				/* fmt.Println("----------------------------------------------------------------")
-				fmt.Println(m.Pred.Value()) */
-			}
-
-			// Print cost
-			if epoch%100 == 0 {
-				fmt.Println("Iteration: ", epoch, "  Cost: ", costVal)
-			}
-			// Stock it.
-			S.LossRecord = append(S.LossRecord, []float64{float64(epoch), costVal.Data().(float64)})
-		}
-		m.FitStock.LossRecord = S.LossRecord
+		m._AdamTrain(xT, yT, delivery)
 	}
-
-	// The training process is complete.
 	log.Printf("training finish!")
+}
+
+func (m *NN) _AdamTrain(xT, yT *tensor.Dense, delivery fit_delivery) {
+	batches := delivery.batches
+	batchSize := delivery.batchsize
+	inputShape := delivery.inputShape
+	outputShape := delivery.outputShape
+	costVal := delivery.costVal
+	para := delivery.para
+	sampleSize := delivery.samplesize
+	S := delivery.S
+	learning_rate := para.Lr
+
+	solver := gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(batchSize)), gorgonia.WithLearnRate(learning_rate))
+	// Start epoches training
+	for epoch := 0; epoch < para.Epoches; epoch++ {
+		if epoch == int(para.Epoches/2) {
+			learning_rate /= 10
+			solver = gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(batchSize)), gorgonia.WithLearnRate(learning_rate))
+		}
+		// Start batches...
+		for b := 0; b < batches; b++ {
+
+			// Handling the
+			start := b * batchSize
+			end := start + batchSize
+			over := 0
+			if start >= sampleSize {
+				break
+			}
+			if end > sampleSize {
+				over = end - sampleSize
+				end = sampleSize
+			}
+
+			//slice data Note: xT and xVal are same type but different size. So does yT and yVal.
+			xVal, err := xT.Slice(sli{start, end})
+			if err != nil {
+				log.Fatal(err, "Can't slice the X data")
+			}
+			yVal, err := yT.Slice(sli{start, end})
+			if err != nil {
+				log.Fatal(err, "Can't slice the Y data")
+			}
+
+			// Define input output node
+			X := gorgonia.NewMatrix(m.G, tensor.Float64, gorgonia.WithShape(batchSize-over, inputShape), gorgonia.WithName("X"))
+			y := gorgonia.NewMatrix(m.G, tensor.Float64, gorgonia.WithShape(batchSize-over, outputShape), gorgonia.WithName("y"))
+
+			// forward pass
+			err = m.Forward(X)
+			if err != nil {
+				log.Fatal(err, "Forward pass fail")
+			}
+
+			// Define the loss function.
+			cost := para.Lossfunc(m.Pred, y)
+
+			// Record cost change
+			gorgonia.Read(cost, &costVal)
+
+			// Update the gradient.
+			if _, err = gorgonia.Grad(cost, m.Learnables()...); err != nil {
+				log.Fatal("Unable to udate gradient")
+			}
+
+			// Define the tape machine to record the gradient change for the nodes which should be optimized or activated.
+			vm := gorgonia.NewTapeMachine(m.G, gorgonia.BindDualValues(m.Learnables()...))
+
+			// Dump it
+			gorgonia.Let(X, xVal)
+			gorgonia.Let(y, yVal)
+
+			// Optimizing...
+			vm.Reset()
+			vm.RunAll()
+			solver.Step(gorgonia.NodesToValueGrads(m.Learnables()))
+			vm.Reset()
+		}
+
+		// Print cost
+		if epoch%100 == 0 {
+			fmt.Println("Iteration: ", epoch, "  Cost: ", costVal)
+		}
+		// Stock it.
+		S.LossRecord = append(S.LossRecord, []float64{float64(epoch), costVal.Data().(float64)})
+	}
+	m.FitStock.LossRecord = S.LossRecord
+}
+
+func (m *NN) _RMSPropTrain(xT, yT *tensor.Dense, delivery fit_delivery) {
+	batches := delivery.batches
+	batchSize := delivery.batchsize
+	inputShape := delivery.inputShape
+	outputShape := delivery.outputShape
+	costVal := delivery.costVal
+	para := delivery.para
+	sampleSize := delivery.samplesize
+	S := delivery.S
+	learning_rate := para.Lr
+
+	solver := gorgonia.NewRMSPropSolver(gorgonia.WithBatchSize(float64(batchSize)), gorgonia.WithLearnRate(learning_rate))
+
+	// Start epoches training
+	for epoch := 1; epoch < para.Epoches+1; epoch++ {
+		if epoch == int(para.Epoches/2) {
+			learning_rate /= 10
+			solver = gorgonia.NewRMSPropSolver(gorgonia.WithBatchSize(float64(batchSize)), gorgonia.WithLearnRate(learning_rate))
+		}
+		// Start batches...
+		for b := 0; b < batches; b++ {
+			// Handling the
+			start := b * batchSize
+			end := start + batchSize
+			over := 0
+			if start >= sampleSize {
+				break
+			}
+			if end > sampleSize {
+				over = end - sampleSize
+				end = sampleSize
+			}
+
+			//slice data Note: xT and xVal are same type but different size. So does yT and yVal.
+			xVal, err := xT.Slice(sli{start, end})
+			if err != nil {
+				log.Fatal(err, "Can't slice the X data")
+			}
+			yVal, err := yT.Slice(sli{start, end})
+			if err != nil {
+				log.Fatal(err, "Can't slice the Y data")
+			}
+
+			// Define input output node
+			X := gorgonia.NewMatrix(m.G, tensor.Float64, gorgonia.WithShape(batchSize-over, inputShape), gorgonia.WithName("X"))
+			y := gorgonia.NewMatrix(m.G, tensor.Float64, gorgonia.WithShape(batchSize-over, outputShape), gorgonia.WithName("y"))
+
+			// forward pass
+			err = m.Forward(X)
+			if err != nil {
+				log.Fatal(err, "Forward pass fail")
+			}
+
+			// Define the loss function.
+			cost := para.Lossfunc(m.Pred, y)
+
+			// Record cost change
+			gorgonia.Read(cost, &costVal)
+
+			// Update the gradient.
+			if _, err = gorgonia.Grad(cost, m.Learnables()...); err != nil {
+				log.Fatal("Unable to udate gradient")
+			}
+
+			// Define the tape machine to record the gradient change for the nodes which should be optimized or activated.
+			vm := gorgonia.NewTapeMachine(m.G, gorgonia.BindDualValues(m.Learnables()...))
+
+			// Dump it
+			gorgonia.Let(X, xVal)
+			gorgonia.Let(y, yVal)
+
+			// Optimizing...
+			vm.Reset()
+			vm.RunAll()
+			solver.Step(gorgonia.NodesToValueGrads(m.Learnables()))
+			vm.Reset()
+		}
+
+		// Print cost
+		if epoch%100 == 0 {
+			fmt.Println("Iteration: ", epoch, "  Cost: ", costVal)
+		}
+		// Stock it.
+		S.LossRecord = append(S.LossRecord, []float64{float64(epoch), costVal.Data().(float64)})
+	}
+	m.FitStock.LossRecord = S.LossRecord
 }
 
 // Separate the neural network apart. Since it has same graph as the original network, it can be trained separtely.
