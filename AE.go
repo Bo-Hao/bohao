@@ -18,9 +18,8 @@ type AE struct {
 	Denoising2     float64
 	Dropout        []float64
 	Acti           []ActivationFunc
-
-	phase1_cost *gorgonia.Node
-	phase2_cost *gorgonia.Node
+	L1reg          float64
+	L2reg          float64
 
 	H1, H3 *gorgonia.Node
 
@@ -68,6 +67,8 @@ type AE_Struction struct {
 	Denoising  float64
 	Dropout    []float64
 	Acti       []ActivationFunc
+	L1reg      float64
+	L2reg      float64
 	Normal     bool
 	NormalSize float64
 }
@@ -106,14 +107,14 @@ func NewAE(g *gorgonia.ExprGraph, S AE_Struction) *AE {
 		tensor.Float64,
 		gorgonia.WithShape(1, S.HiddenShape),
 		gorgonia.WithName("B1"),
-		gorgonia.WithInit(gorgonia.GlorotU(1)),
+		gorgonia.WithInit(gorgonia.Zeroes()),
 	)
 	b2 := gorgonia.NewMatrix(
 		g,
 		tensor.Float64,
 		gorgonia.WithShape(1, S.CoreShape),
 		gorgonia.WithName("B2"),
-		gorgonia.WithInit(gorgonia.GlorotU(1)),
+		gorgonia.WithInit(gorgonia.Zeroes()),
 	)
 
 	b3 := gorgonia.NewMatrix(
@@ -121,14 +122,14 @@ func NewAE(g *gorgonia.ExprGraph, S AE_Struction) *AE {
 		tensor.Float64,
 		gorgonia.WithShape(1, S.HiddenShape),
 		gorgonia.WithName("B3"),
-		gorgonia.WithInit(gorgonia.GlorotU(1)),
+		gorgonia.WithInit(gorgonia.Zeroes()),
 	)
 	b4 := gorgonia.NewMatrix(
 		g,
 		tensor.Float64,
 		gorgonia.WithShape(1, S.InputShape),
 		gorgonia.WithName("B4"),
-		gorgonia.WithInit(gorgonia.GlorotU(1)),
+		gorgonia.WithInit(gorgonia.Zeroes()),
 	)
 
 	return &AE{
@@ -142,6 +143,8 @@ func NewAE(g *gorgonia.ExprGraph, S AE_Struction) *AE {
 		Denoising1: S.Denoising,
 		Dropout:    S.Dropout,
 		Acti:       S.Acti,
+		L1reg:      S.L1reg,
+		L2reg:      S.L2reg,
 		Normal:     S.Normal,
 		NormalSize: S.NormalSize,
 	}
@@ -275,8 +278,6 @@ func (m *AE) Forward(x *gorgonia.Node) (err error) {
 
 	m.Pred = l[4]
 	gorgonia.Read(m.Pred, &m.PredVal)
-	m.phase1_cost = gorgonia.Must(gorgonia.Mean(gorgonia.Must(gorgonia.Square(gorgonia.Must(gorgonia.Sub(m.Pred, l[0]))))))
-	m.phase2_cost = gorgonia.Must(gorgonia.Mean(gorgonia.Must(gorgonia.Square(gorgonia.Must(gorgonia.Sub(l[3], l[1]))))))
 	return
 }
 
@@ -343,11 +344,11 @@ func (m *AE) _AdamTrain(xT *tensor.Dense, delivery fit_delivery) {
 	var costVal_phase1, costVal_phase2 gorgonia.Value
 	// Start epoches training
 	// Phase 1
-	solver := gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(batchSize)), gorgonia.WithLearnRate(learning_rate))
+	solver := gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(batchSize)), gorgonia.WithLearnRate(learning_rate), gorgonia.WithL1Reg(m.L1reg), gorgonia.WithL2Reg(m.L2reg))
 	for epoch := 0; epoch < int(para.Epoches/2); epoch++ {
 		if epoch == int(para.Epoches/4) {
 			learning_rate /= 10
-			solver = gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(batchSize)), gorgonia.WithLearnRate(learning_rate))
+			solver = gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(batchSize)), gorgonia.WithLearnRate(learning_rate), gorgonia.WithL1Reg(m.L1reg), gorgonia.WithL2Reg(m.L2reg))
 		}
 		// Start batches...
 		for b := 0; b < batches; b++ {
@@ -381,7 +382,6 @@ func (m *AE) _AdamTrain(xT *tensor.Dense, delivery fit_delivery) {
 
 			// Define the loss function.
 			cost_phase1 := para.Lossfunc(m.Pred, X)
-			//cost_phase1 := m.phase1_cost
 
 			// Record cost change
 			gorgonia.Read(cost_phase1, &costVal_phase1)
@@ -414,7 +414,7 @@ func (m *AE) _AdamTrain(xT *tensor.Dense, delivery fit_delivery) {
 	m.FitStock.LossRecord = S.LossRecord
 
 	// Phase 2
-	m.Denoising2 = m.Denoising1
+	m.Denoising2 = 0.
 	m.Denoising1 = 0.
 	learning_rate = para.Lr
 	solver = gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(batchSize)), gorgonia.WithLearnRate(learning_rate))
@@ -511,7 +511,7 @@ func (m *AE) _encoder() *AE_Encoder {
 		Acti:       m.Acti[0:2],
 		Normal:     m.Normal,
 		NormalSize: m.NormalSize,
-		FitStock: 	m.FitStock,
+		FitStock:   m.FitStock,
 	}
 }
 
@@ -539,15 +539,15 @@ func (m *AE) _decoder() *AE_Decoder {
 		Acti:       m.Acti[2:],
 		Normal:     m.Normal,
 		NormalSize: m.NormalSize,
-		FitStock: 	m.FitStock,
+		FitStock:   m.FitStock,
 	}
 }
 
-func (m *AE_Encoder) fwd(x *gorgonia.Node) (err error){
+func (m *AE_Encoder) fwd(x *gorgonia.Node) (err error) {
 	l := make([]*gorgonia.Node, 3)
 	l_dot := make([]*gorgonia.Node, 2)
 	l_add := make([]*gorgonia.Node, 2)
-	
+
 	l[0] = x
 
 	// layer 1
@@ -578,7 +578,7 @@ func (m *AE_Encoder) fwd(x *gorgonia.Node) (err error){
 
 	m.Core = l[2]
 	gorgonia.Read(m.Core, &m.CoreVal)
-	
+
 	return
 }
 
@@ -586,7 +586,6 @@ func (m *AE_Decoder) fwd(c *gorgonia.Node) (err error) {
 	l := make([]*gorgonia.Node, 3)
 	l_dot := make([]*gorgonia.Node, 2)
 	l_add := make([]*gorgonia.Node, 2)
-	
 
 	// Denoising layer 1
 	l[0] = c
@@ -604,7 +603,6 @@ func (m *AE_Decoder) fwd(c *gorgonia.Node) (err error) {
 	if l[1], err = m.Acti[0](l_add[0]); err != nil {
 		log.Fatal("Can't activate 3! ", err)
 	}
-	
 
 	// layer 4
 	W1_T, _ := gorgonia.Transpose(m.W1)
@@ -622,7 +620,7 @@ func (m *AE_Decoder) fwd(c *gorgonia.Node) (err error) {
 
 	m.Pred = l[2]
 	gorgonia.Read(m.Pred, &m.PredVal)
-	
+
 	return
 }
 
@@ -632,8 +630,7 @@ func (m *AE) Encode(x [][]float64) [][]float64 {
 
 	inputShape := encoder.W1.Shape()[0]
 	sampleSize := len(x)
-	batchSize, batches := Cal_Batch(sampleSize, sampleSize) 
-
+	batchSize, batches := Cal_Batch(sampleSize, sampleSize)
 
 	//Normalize the input data. And stock the information into m.FitStock.
 	input_x := x
@@ -704,8 +701,7 @@ func (m *AE) Decode(core [][]float64) (prediction_gen [][]float64) {
 
 	inputShape := decoder.W2.Shape()[1]
 	sampleSize := len(core)
-	batchSize, batches := Cal_Batch(sampleSize, sampleSize) 
-
+	batchSize, batches := Cal_Batch(sampleSize, sampleSize)
 
 	//Normalize the input data. And stock the information into m.FitStock.
 	input_x := core

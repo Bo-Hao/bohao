@@ -28,6 +28,8 @@ type NetworkStruction struct {
 	Bias       bool
 	Normal     bool
 	NormalSize float64
+	L1reg      float64
+	L2reg      float64
 }
 
 // Stock the fitting parameters.
@@ -74,6 +76,8 @@ type NN struct {
 
 	Normal     bool
 	NormalSize float64
+	L1reg      float64
+	L2reg      float64
 	FitStock   Stock
 }
 
@@ -111,7 +115,7 @@ func NewNN(g *gorgonia.ExprGraph, S NetworkStruction) *NN {
 				tensor.Float64,
 				gorgonia.WithShape(1, S.Neuron[i+1]),
 				gorgonia.WithName("b"+strconv.Itoa(i)),
-				gorgonia.WithInit(gorgonia.Uniform(-1. , 1.)),
+				gorgonia.WithInit(gorgonia.Zeroes()),
 			))
 		}
 	}
@@ -124,6 +128,8 @@ func NewNN(g *gorgonia.ExprGraph, S NetworkStruction) *NN {
 		A:          S.Act,
 		Normal:     S.Normal,
 		NormalSize: S.NormalSize,
+		L1reg: S.L1reg,
+		L2reg: S.L2reg,
 	}
 }
 
@@ -217,7 +223,7 @@ func (n *NN) Predict(x [][]float64) (prediction_gen [][]float64) {
 	// Define the needed parameters.
 	inputShape := n.W[0].Shape()[0]
 	sampleSize := len(x)
-	batchSize, batches := Cal_Batch(sampleSize, sampleSize) 
+	batchSize, batches := Cal_Batch(sampleSize, sampleSize)
 
 	// Create a New Model
 	var zero_drop []float64
@@ -326,7 +332,7 @@ func (m *NN) Fit(x_, y_ [][]float64, para Parameter) {
 	outputShape := m.W[len(m.W)-1].Shape()[1]
 
 	// batch size will not greater than sample size and won't less than 2. Since batch size equal to 1 will crash the model.
-	batchSize, batches := Cal_Batch(sampleSize, para.BatchSize) 
+	batchSize, batches := Cal_Batch(sampleSize, para.BatchSize)
 
 	// Construct the input data tensor and node.
 	xT := tensor.New(tensor.WithBacking(x_oneDim), tensor.WithShape(sampleSize, inputShape))
@@ -366,12 +372,12 @@ func (m *NN) _AdamTrain(xT, yT *tensor.Dense, delivery fit_delivery) {
 	S := delivery.S
 	learning_rate := para.Lr
 
-	solver := gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(batchSize)), gorgonia.WithLearnRate(learning_rate))
+	solver := gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(batchSize)), gorgonia.WithLearnRate(learning_rate), gorgonia.WithL1Reg(m.L1reg), gorgonia.WithL2Reg(m.L2reg))
 	// Start epoches training
 	for epoch := 0; epoch < para.Epoches; epoch++ {
 		if epoch == int(para.Epoches/2) {
 			learning_rate /= 10
-			solver = gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(batchSize)), gorgonia.WithLearnRate(learning_rate))
+			solver = gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(batchSize)), gorgonia.WithLearnRate(learning_rate), gorgonia.WithL1Reg(m.L1reg), gorgonia.WithL2Reg(m.L2reg))
 		}
 		// Start batches...
 		for b := 0; b < batches; b++ {
@@ -454,13 +460,13 @@ func (m *NN) _RMSPropTrain(xT, yT *tensor.Dense, delivery fit_delivery) {
 	S := delivery.S
 	learning_rate := para.Lr
 
-	solver := gorgonia.NewRMSPropSolver(gorgonia.WithBatchSize(float64(batchSize)), gorgonia.WithLearnRate(learning_rate))
+	solver := gorgonia.NewRMSPropSolver(gorgonia.WithBatchSize(float64(batchSize)), gorgonia.WithLearnRate(learning_rate), gorgonia.WithL1Reg(m.L1reg), gorgonia.WithL2Reg(m.L2reg))
 
 	// Start epoches training
 	for epoch := 1; epoch < para.Epoches+1; epoch++ {
 		if epoch == int(para.Epoches/2) {
 			learning_rate /= 10
-			solver = gorgonia.NewRMSPropSolver(gorgonia.WithBatchSize(float64(batchSize)), gorgonia.WithLearnRate(learning_rate))
+			solver = gorgonia.NewRMSPropSolver(gorgonia.WithBatchSize(float64(batchSize)), gorgonia.WithLearnRate(learning_rate), gorgonia.WithL1Reg(m.L1reg), gorgonia.WithL2Reg(m.L2reg))
 		}
 		// Start batches...
 		for b := 0; b < batches; b++ {
