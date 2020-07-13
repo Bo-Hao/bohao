@@ -402,14 +402,12 @@ func (m *AE) _AdamTrain(xT *tensor.Dense, delivery fit_delivery) {
 			vm.RunAll()
 			solver.Step(gorgonia.NodesToValueGrads(m.Learnables_Phase1()))
 			vm.Reset()
-			if costVal_phase1 == nil {
-				fmt.Println(m.Pred.Value(), X.Value(), cost_phase1.Value())
-			}
 		}
 
 		// Print cost
 		if epoch%100 == 0 {
 			fmt.Println("Phase 1: Iteration: ", epoch, "  Cost: ", costVal_phase1)
+			fmt.Println(m.Pred.Value(), costVal_phase1)
 		}
 		// Stock it.
 		S.LossRecord = append(S.LossRecord, []float64{float64(epoch), costVal_phase1.Data().(float64)})
