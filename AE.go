@@ -396,12 +396,15 @@ func (m *AE) _AdamTrain(xT *tensor.Dense, delivery fit_delivery) {
 
 			// Dump it
 			gorgonia.Let(X, xVal)
-			
+
 			// Optimizing...
 			vm.Reset()
 			vm.RunAll()
 			solver.Step(gorgonia.NodesToValueGrads(m.Learnables_Phase1()))
 			vm.Reset()
+			if costVal_phase1 == nil {
+				fmt.Println(m.Pred.Value(), X.Value(), cost_phase1.Value())
+			}
 		}
 
 		// Print cost
