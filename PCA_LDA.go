@@ -109,7 +109,7 @@ func Cal_PCA(input [][]float64) PCA {
 		std_list := Mean(input_T[i])
 		for j := 0; j < r; j++ {
 			if std_list == 0 {
-				data[j*c+i] = 0
+				data[j*c+i] = (input[j][i] - mean_list)
 			} else {
 				data[j*c+i] = (input[j][i] - mean_list) / std_list
 			}

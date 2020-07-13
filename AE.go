@@ -396,7 +396,7 @@ func (m *AE) _AdamTrain(xT *tensor.Dense, delivery fit_delivery) {
 
 			// Dump it
 			gorgonia.Let(X, xVal)
-
+			
 			// Optimizing...
 			vm.Reset()
 			vm.RunAll()
