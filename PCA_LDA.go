@@ -1,11 +1,10 @@
 package bohao
 
 import (
+	"fmt"
 	"sort"
 	"strconv"
 	"strings"
-	"fmt"
-
 
 	"gonum.org/v1/gonum/mat"
 )
@@ -52,18 +51,18 @@ func (P *PCA) decide_numcomp(dim string) int {
 			panic(err)
 			fmt.Println("Wrong")
 		}
-		if f/100 > 1. || f/100 < 0.{
+		if f/100 > 1. || f/100 < 0. {
 			panic("Should be within [0., 1.]")
-		} 
+		}
 		num_comp = P.cal_needed_dim(f / 100)
 	} else if strings.Contains(dim, ".") {
 		f, err := strconv.ParseFloat(dim, 64)
 		if err != nil {
 			panic(err)
 		}
-		if f > 1. || f < 0.{
+		if f > 1. || f < 0. {
 			panic("Should be within [0., 1.]")
-		} 
+		}
 		num_comp = P.cal_needed_dim(f / 100)
 	} else {
 		num_comp, err = strconv.Atoi(dim)
@@ -73,23 +72,21 @@ func (P *PCA) decide_numcomp(dim string) int {
 		}
 	}
 
-
-
-	if num_comp > len(P.Eigenvalue){
+	if num_comp > len(P.Eigenvalue) {
 		num_comp = len(P.Eigenvalue)
-	}else if num_comp <= 0. {
+	} else if num_comp <= 0. {
 		num_comp = 1
 	}
 	return num_comp
 }
 
-func (P *PCA) Reduce_data_dim(data [][]float64, dim string) ([][]float64) {
+func (P *PCA) Reduce_data_dim(data [][]float64, dim string) [][]float64 {
 	num_comp := P.decide_numcomp(dim)
 
 	new_data := make([][]float64, num_comp)
 	for component := 0; component < num_comp; component++ {
 		vector := P.Eigenvector[component]
-		for i := 0; i < len(data); i ++{
+		for i := 0; i < len(data); i++ {
 			SumProduct(vector, data[i])
 			new_data[component] = append(new_data[component], SumProduct(vector, data[i]))
 		}
@@ -111,7 +108,12 @@ func Cal_PCA(input [][]float64) PCA {
 		mean_list := Std(input_T[i])
 		std_list := Mean(input_T[i])
 		for j := 0; j < r; j++ {
-			data[j*c+i] = (input[j][i] - mean_list) / std_list
+			if std_list == 0 {
+				data[j*c+i] = 0
+			} else {
+				data[j*c+i] = (input[j][i] - mean_list) / std_list
+			}
+
 		}
 	}
 
@@ -129,7 +131,7 @@ func Cal_PCA(input [][]float64) PCA {
 		}
 	}
 	phi_ := mat.NewSymDense(r, data)
-
+	fmt.Println(phi_)
 	var eigsym mat.EigenSym
 	ok := eigsym.Factorize(phi_, true)
 	if !ok {

@@ -237,7 +237,7 @@ func (n *NN) Predict(x [][]float64) (prediction_gen [][]float64) {
 	//Normalize the input data. And stock the information into m.FitStock.
 	input_x := x
 	if m.Normal {
-		input_x, _, _ = Normalized(x, m.NormalSize)
+		input_x = Normalize_adjust(x, m.FitStock.max_list_x, m.FitStock.min_list_x)
 	}
 
 	x_oneDim := ToOneDimSlice(input_x)
