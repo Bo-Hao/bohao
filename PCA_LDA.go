@@ -131,7 +131,6 @@ func Cal_PCA(input [][]float64) PCA {
 		}
 	}
 	phi_ := mat.NewSymDense(r, data)
-	fmt.Println(phi_)
 	var eigsym mat.EigenSym
 	ok := eigsym.Factorize(phi_, true)
 	if !ok {
