@@ -14,8 +14,7 @@ type AE struct {
 	G              *gorgonia.ExprGraph
 	W1, W2         *gorgonia.Node
 	B1, B2, B3, B4 *gorgonia.Node
-	Denoising1     float64
-	Denoising2     float64
+	Denoising float64
 	Dropout        []float64
 	Acti           []ActivationFunc
 	L1reg          float64
@@ -88,6 +87,7 @@ func (m *AE) Learnables_Phase2() gorgonia.Nodes {
 func NewAE(g *gorgonia.ExprGraph, S AE_Struction) *AE {
 	// Set random seed
 	rand.Seed(time.Now().Unix())
+
 	w1 := gorgonia.NewMatrix(
 		g,
 		tensor.Float64,
@@ -140,7 +140,7 @@ func NewAE(g *gorgonia.ExprGraph, S AE_Struction) *AE {
 		B2:         b2,
 		B3:         b3,
 		B4:         b4,
-		Denoising1: S.Denoising,
+		Denoising: S.Denoising,
 		Dropout:    S.Dropout,
 		Acti:       S.Acti,
 		L1reg:      S.L1reg,
@@ -191,13 +191,15 @@ func (m *AE) Forward(x *gorgonia.Node) (err error) {
 	l_dot := make([]*gorgonia.Node, 4)
 	l_add := make([]*gorgonia.Node, 4)
 	l_drop := make([]*gorgonia.Node, 4)
-	var denoise1, denoise2 *gorgonia.Node
+	var denoise1 *gorgonia.Node
+	corruption := gorgonia.BinomialRandomNode(g, tensor.Float64, 1, m.Denoising)
 
 	// Denoising layer 1
 	l[0] = x
-	if denoise1, err = gorgonia.Dropout(l[0], m.Denoising1); err != nil {
-		log.Fatal("Can't denoise 1! ", err)
+	if denoise1, err = gorgonia.HadamardProd(corruption, l[0]); err != nil {
+		return
 	}
+	
 	// layer 1
 	if l_dot[0], err = gorgonia.Mul(denoise1, m.W1); err != nil {
 		log.Fatal("Can't Mul 1! ", err)
@@ -217,13 +219,8 @@ func (m *AE) Forward(x *gorgonia.Node) (err error) {
 
 	m.H1 = l[1]
 
-	// Denoising layer 2
-	if denoise2, err = gorgonia.Dropout(l[1], m.Denoising2); err != nil {
-		log.Fatal("Can't denoise 1! ", err)
-	}
-
 	// layer 2
-	if l_dot[1], err = gorgonia.Mul(denoise2, m.W2); err != nil {
+	if l_dot[1], err = gorgonia.Mul(l[1], m.W2); err != nil {
 		log.Fatal("Can't Mul 2! ", err)
 	}
 
@@ -414,8 +411,7 @@ func (m *AE) _AdamTrain(xT *tensor.Dense, delivery fit_delivery) {
 	m.FitStock.LossRecord = S.LossRecord
 
 	// Phase 2
-	m.Denoising2 = 0.
-	m.Denoising1 = 0.
+	m.Denoising = 0.
 	learning_rate = para.Lr
 	solver = gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(batchSize)), gorgonia.WithLearnRate(learning_rate))
 	for epoch := 0; epoch < para.Epoches-int(para.Epoches/2); epoch++ {
