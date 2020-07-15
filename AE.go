@@ -192,7 +192,7 @@ func (m *AE) Forward(x *gorgonia.Node) (err error) {
 	l_add := make([]*gorgonia.Node, 4)
 	l_drop := make([]*gorgonia.Node, 4)
 	var denoise1 *gorgonia.Node
-	corruption := gorgonia.BinomialRandomNode(g, tensor.Float64, 1, m.Denoising)
+	corruption := gorgonia.BinomialRandomNode(m.g, tensor.Float64, 1, m.Denoising)
 
 	// Denoising layer 1
 	l[0] = x
