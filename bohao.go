@@ -83,6 +83,7 @@ func Transpose_float(mat [][]float64) [][]float64 {
 func Transpose_str(mat [][]string) [][]string {
 	row := len(mat)
 	col := len(mat[0])
+	
 
 	t := make([][]string, col)
 	for j := 0; j < col; j++ {
