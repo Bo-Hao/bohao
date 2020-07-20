@@ -83,7 +83,6 @@ func Transpose_float(mat [][]float64) [][]float64 {
 func Transpose_str(mat [][]string) [][]string {
 	row := len(mat)
 	col := len(mat[0])
-	
 
 	t := make([][]string, col)
 	for j := 0; j < col; j++ {
@@ -307,7 +306,7 @@ func Std(sli []float64) (result float64) {
 		sum += float64(sli[i])
 		square += math.Pow(float64(sli[i]), 2)
 	}
-	result = math.Sqrt(math.Abs(square - math.Pow(sum, 2)/float64(n)) / float64(n -1))
+	result = math.Sqrt(math.Abs(square-math.Pow(sum, 2)/float64(n)) / float64(n-1))
 	return
 }
 func Std_int(sli []int) (result float64) {
@@ -319,7 +318,7 @@ func Std_int(sli []int) (result float64) {
 		square += math.Pow(float64(sli[i]), 2)
 	}
 
-	result = math.Sqrt(math.Abs(square - math.Pow(sum, 2)/float64(n)) / float64(n-1))
+	result = math.Sqrt(math.Abs(square-math.Pow(sum, 2)/float64(n)) / float64(n-1))
 	return
 }
 
@@ -370,7 +369,6 @@ func Normalized(rawData [][]float64, NormalSize float64) ([][]float64, []float64
 		max_list = append(max_list, Mean(rawData_T[i]))
 		min_list = append(min_list, Std(rawData_T[i]))
 	}
-	
 
 	for i := 0; i < len(rawData); i++ {
 		for j := 0; j < len(rawData[i]); j++ {
@@ -384,7 +382,7 @@ func Normalized(rawData [][]float64, NormalSize float64) ([][]float64, []float64
 	return normData, max_list, min_list
 }
 
-func Normalize_adjust(rawData [][]float64, max_list, min_list []float64) ([][]float64) {
+func Normalize_adjust(rawData [][]float64, max_list, min_list []float64) [][]float64 {
 	normData := make([][]float64, len(rawData))
 	for i := 0; i < len(rawData); i++ {
 		for j := 0; j < len(rawData[i]); j++ {
@@ -481,4 +479,20 @@ func Quantiles(list []float64) (q_list []float64) {
 		}
 	}
 	return
+}
+
+func Percentile(Xs []float64, pctile float64) float64 {
+	sort.Float64s(Xs)
+	
+	N := float64(len(Xs))
+	//n := pctile * (N + 1) // R6
+	n := 1/3.0 + pctile*(N+1/3.0) // R8
+	kf, frac := math.Modf(n)
+	k := int(kf)
+	if k <= 0 {
+		return Xs[0]
+	} else if k >= len(Xs) {
+		return Xs[len(Xs)-1]
+	}
+	return Xs[k-1] + frac*(Xs[k]-Xs[k-1])
 }
