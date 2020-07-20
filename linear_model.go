@@ -48,7 +48,7 @@ func Simple_Regression(x, y []float64) (*RegressionResult) {
 	R.r = r
 	R.Formula = r.Formula
 	R.R2 = r.R2
-	R.R2_adj = 1. - ((1. - r.R2)*float64(len(x) - 1)/float64(len(x) - len(x[0]) - 1))
+	R.R2_adj = 1. - ((1. - r.R2)*float64(len(x) - 1)/float64(len(x) - 1. - 1.))
 	R.Coeff = r.GetCoeffs()
 	R.VariancePredicted = r.VariancePredicted
 	R.VarianceObserved =  r.Varianceobserved
@@ -58,7 +58,7 @@ func Simple_Regression(x, y []float64) (*RegressionResult) {
 
 func (R RegressionResult) Simple_Predict(x []float64) (y []float64) {
 	for i := 0; i < len(x); i ++{
-		pre, err := R.r.Predict([]flaot64{x[i]})
+		pre, err := R.r.Predict([]float64{x[i]})
 		if err != nil {
 			panic(err)
 		}
