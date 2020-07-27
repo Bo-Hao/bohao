@@ -253,7 +253,7 @@ func (n *NN) Predict(x [][]float64) (prediction_gen [][]float64) {
 	var prediction [][]float64
 
 	// Start batches
-	for b := 0; b < batches+1; b++ {
+	for b := 0; b < batches; b++ {
 		start := b * batchSize
 		end := start + batchSize
 		over := 0
@@ -294,6 +294,7 @@ func (n *NN) Predict(x [][]float64) (prediction_gen [][]float64) {
 		} else {
 			prediction = append(prediction, m.ValueToFloatSlice()...)
 		}
+
 	}
 
 	// generalize the output using the data which stock in m.FitStock.

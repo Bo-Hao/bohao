@@ -408,7 +408,7 @@ func Normalize_adjust(rawData [][]float64, max_list, min_list []float64) [][]flo
 			normData[i] = append(normData[i], 0.0)
 		}
 	}
-
+	
 	for i := 0; i < len(rawData); i++ {
 		for j := 0; j < len(rawData[i]); j++ {
 			if math.Abs(min_list[j]) <= 0.00000001 {
