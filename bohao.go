@@ -297,6 +297,17 @@ func C(x, y int) int {
 	}
 	return c
 }
+func Variance(sli []float64) (result float64) {
+	square := 0.
+	sum := 0.
+	n := len(sli)
+	for i := 0; i < n; i++ {
+		sum += float64(sli[i])
+		square += math.Pow(float64(sli[i]), 2)
+	}
+	result = math.Abs(square-math.Pow(sum, 2)/float64(n)) / float64(n-1)
+	return
+}
 
 func Std(sli []float64) (result float64) {
 	square := 0.
@@ -483,7 +494,7 @@ func Quantiles(list []float64) (q_list []float64) {
 
 func Percentile(Xs []float64, pctile float64) float64 {
 	sort.Float64s(Xs)
-	
+
 	N := float64(len(Xs))
 	//n := pctile * (N + 1) // R6
 	n := 1/3.0 + pctile*(N+1/3.0) // R8

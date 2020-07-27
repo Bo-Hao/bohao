@@ -3,6 +3,7 @@ package bohao
 import (
 	"fmt"
 	"log"
+	"math"
 	"math/rand"
 	"strconv"
 	"time"
@@ -128,8 +129,8 @@ func NewNN(g *gorgonia.ExprGraph, S NetworkStruction) *NN {
 		A:          S.Act,
 		Normal:     S.Normal,
 		NormalSize: S.NormalSize,
-		L1reg: S.L1reg,
-		L2reg: S.L2reg,
+		L1reg:      S.L1reg,
+		L2reg:      S.L2reg,
 	}
 }
 
@@ -535,6 +536,59 @@ func (m *NN) _RMSPropTrain(xT, yT *tensor.Dense, delivery fit_delivery) {
 		S.LossRecord = append(S.LossRecord, []float64{float64(epoch), costVal.Data().(float64)})
 	}
 	m.FitStock.LossRecord = S.LossRecord
+}
+
+/* func (m *NN) CrossFit(x_, y_ [][]float64, para Parameter) {
+	input_x := x_
+	input_y := y_
+
+	split_x := make([][][]float64, 5)
+	split_y := make([][][]float64, 5)
+	stratumSize := int(float64(len(input_x)) / 5.)
+
+	stratum := -1
+	for i := 0; i < len(input_x); i++ {
+		if i%stratumSize == 0 {
+			stratum += 1
+		}
+		split_x[stratum] = append(split_x[stratum], input_x[i])
+		split_y[stratum] = append(split_y[stratum], input_y[i])
+	}
+	for i := 0; i < 5; i ++{
+
+	}
+} */
+
+func (m *NN) _TestOverfitting(x, y [][]float64) {
+	input_x := x
+	input_y := y
+
+	split_x := make([][][]float64, 5)
+	split_y := make([][][]float64, 5)
+	stratumSize := int(float64(len(input_x)) / 5.)
+
+	stratum := -1
+	for i := 0; i < len(input_x); i++ {
+		if i%stratumSize == 0 {
+			stratum += 1
+		}
+		split_x[stratum] = append(split_x[stratum], input_x[i])
+		split_y[stratum] = append(split_y[stratum], input_y[i])
+	}
+
+	for i := 0; i < 5; i++ {
+		y_ := m.Predict(split_x[i])
+		fmt.Println(RMSE(y_, split_y[i]))
+	}
+}
+
+func RMSE(y_, y [][]float64) float64 {
+	sum := 0.
+	fmt.Println(len(y_), len(y))
+	for i := 0; i < len(y); i++ {
+		sum += math.Pow(y_[i][0]-y[i][0], 2)
+	}
+	return math.Sqrt(sum / float64(len(y)))
 }
 
 // Separate the neural network apart. Since it has same graph as the original network, it can be trained separtely.
