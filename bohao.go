@@ -297,6 +297,14 @@ func C(x, y int) int {
 	}
 	return c
 }
+
+func SquareSum(sli []float64) (result float64) {
+	for i := 0; i < len(sli); i++ {
+		result += math.Pow(sli[i], 2)
+	}
+	return
+}
+
 func Variance(sli []float64) (result float64) {
 	square := 0.
 	sum := 0.
