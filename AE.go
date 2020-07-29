@@ -14,7 +14,7 @@ type AE struct {
 	G              *gorgonia.ExprGraph
 	W1, W2         *gorgonia.Node
 	B1, B2, B3, B4 *gorgonia.Node
-	Denoising float64
+	Denoising      float64
 	Dropout        []float64
 	Acti           []ActivationFunc
 	L1reg          float64
@@ -140,7 +140,7 @@ func NewAE(g *gorgonia.ExprGraph, S AE_Struction) *AE {
 		B2:         b2,
 		B3:         b3,
 		B4:         b4,
-		Denoising: S.Denoising,
+		Denoising:  S.Denoising,
 		Dropout:    S.Dropout,
 		Acti:       S.Acti,
 		L1reg:      S.L1reg,
@@ -199,7 +199,7 @@ func (m *AE) Forward(x *gorgonia.Node) (err error) {
 	if denoise1, err = gorgonia.HadamardProd(corruption, l[0]); err != nil {
 		return
 	}
-	
+
 	// layer 1
 	if l_dot[0], err = gorgonia.Mul(denoise1, m.W1); err != nil {
 		log.Fatal("Can't Mul 1! ", err)
@@ -278,7 +278,7 @@ func (m *AE) Forward(x *gorgonia.Node) (err error) {
 	return
 }
 
-func (m *AE) Fit(x_ [][]float64, para Parameter) {
+func (m *AE) Fit(x_ [][]float64, para TrainingParameter) {
 	input_x := x_
 
 	//Normalize the input data. And stock the information into m.FitStock.

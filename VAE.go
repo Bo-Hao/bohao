@@ -167,7 +167,7 @@ func (m *VAE) Forward(x *gorgonia.Node) (err error) {
 	return
 }
 
-func (m *VAE) Fit(input_x, input_y [][]float64, para Parameter) {
+func (m *VAE) Fit(input_x, input_y [][]float64, para TrainingParameter) {
 	S := Stock{}
 	inputShape := len(input_x[0])
 	outputShape := len(input_y[0])
