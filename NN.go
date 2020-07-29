@@ -34,7 +34,7 @@ type NetworkStruction struct {
 }
 
 // Stock the fitting parameters.
-type Parameter struct {
+type TrainingParameter struct {
 	Lr        float64
 	Epoches   int
 	BatchSize int
@@ -43,8 +43,8 @@ type Parameter struct {
 }
 
 // Initial the default parameter. It is not necessary.
-func InitParameter() Parameter {
-	return Parameter{
+func InitParameter() TrainingParameter {
+	return TrainingParameter{
 		Lr:        0.01,
 		Epoches:   200,
 		BatchSize: 500,
@@ -59,7 +59,7 @@ type fit_delivery struct {
 	inputShape  int
 	outputShape int
 	costVal     gorgonia.Value
-	para        Parameter
+	para        TrainingParameter
 	samplesize  int
 	S           Stock
 }
@@ -306,7 +306,7 @@ func (n *NN) Predict(x [][]float64) (prediction_gen [][]float64) {
 	return prediction_gen
 }
 
-func (m *NN) Fit(x_, y_ [][]float64, para Parameter) {
+func (m *NN) Fit(x_, y_ [][]float64, para TrainingParameter) {
 	input_x := x_
 	input_y := y_
 
@@ -539,7 +539,7 @@ func (m *NN) _RMSPropTrain(xT, yT *tensor.Dense, delivery fit_delivery) {
 	m.FitStock.LossRecord = S.LossRecord
 }
 
-/* func (m *NN) CrossFit(x_, y_ [][]float64, para Parameter) {
+/* func (m *NN) CrossFit(x_, y_ [][]float64, para TrainingParameter) {
 	input_x := x_
 	input_y := y_
 
