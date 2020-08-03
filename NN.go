@@ -106,11 +106,11 @@ func NewNN(g *gorgonia.ExprGraph, S NetworkStruction) *NN {
 			tensor.Float64,
 			gorgonia.WithShape(S.Neuron[i], S.Neuron[i+1]),
 			gorgonia.WithName("w"+strconv.Itoa(i)),
-			gorgonia.WithInit(gorgonia.GlorotU(1)),
+			gorgonia.WithInit(gorgonia.Uniform(-1, 1)),
 		))
 	}
 	if S.Bias {
-		for i := 0; i < len(S.Neuron)-2; i++ {
+		for i := 0; i < len(S.Neuron)-1; i++ {
 			Bs = append(Bs, gorgonia.NewMatrix(
 				g,
 				tensor.Float64,
@@ -145,7 +145,8 @@ func (m *NN) Forward(x *gorgonia.Node) (err error) {
 
 	// W X + B
 	for i := 0; i < len(m.W); i++ {
-		if len(m.B) != 0 && i < len(m.W)-1 {
+
+		if len(m.B) != 0 && i < len(m.W) {
 			L1, err := gorgonia.Mul(l[i], m.W[i])
 			if err != nil {
 				fmt.Println(l[i].Shape(), m.W[i].Shape())
@@ -353,6 +354,7 @@ func (m *NN) Fit(x_, y_ [][]float64, para TrainingParameter) {
 		samplesize:  sampleSize,
 		S:           S,
 	}
+
 	// Since different optimizer are not the same type. We should rewrite code.
 	if para.Solver == "RMSProp" {
 		m._RMSPropTrain(xT, yT, delivery)
