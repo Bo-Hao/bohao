@@ -106,7 +106,7 @@ func NewNN(g *gorgonia.ExprGraph, S NetworkStruction) *NN {
 			tensor.Float64,
 			gorgonia.WithShape(S.Neuron[i], S.Neuron[i+1]),
 			gorgonia.WithName("w"+strconv.Itoa(i)),
-			gorgonia.WithInit(gorgonia.Uniform(-1, 1)),
+			gorgonia.WithInit(gorgonia.Uniform(-0.8, 0.8)),
 		))
 	}
 	if S.Bias {
