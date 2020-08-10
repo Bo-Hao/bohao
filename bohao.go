@@ -346,35 +346,21 @@ func Mean(sli []float64) (mean float64) {
 	return
 }
 
-func Normalized(rawData [][]float64, NormalSize float64) ([][]float64, []float64, []float64) {
-	/* rawData_T := Transpose_float(rawData)
-	if NormalSize == 0. {
-		NormalSize = 1.
-	}
-	normData := make([][]float64, len(rawData))
-	for i := 0; i < len(rawData); i++ {
-		for j := 0; j < len(rawData[i]); j++ {
-			normData[i] = append(normData[i], 0.0)
+
+func Normalized(rawData [][]float64, weight []float64) ([][]float64, []float64, []float64) {
+	if len(weight) == 0 {
+		weight = []float64{}
+		for i := 0; i < len(rawData[0]); i ++{
+			weight = append(weight, 1.)
+		} 
+	}else {
+		max := MaxSlice_float64(weight)
+		for i := 0; i < len(weight); i ++{
+			weight[i] = weight[i]/max
 		}
-	}
-	var max_list, min_list []float64
-	for i := 0; i < len(rawData_T); i++ {
-		max_list = append(max_list, MaxSlice_float64(rawData_T[i]))
-		min_list = append(min_list, MinSlice_float64(rawData_T[i]))
 	}
 
-	for i := 0; i < len(rawData); i++ {
-		for j := 0; j < len(rawData[i]); j++ {
-			if max_list[j]-min_list[j] == 0.0 {
-				normData[i][j] = 0
-			} else {
-				normData[i][j] = 2*NormalSize*(rawData[i][j]-min_list[j])/(max_list[j]-min_list[j]) - NormalSize
-			}
-		}
-	} */
-	if NormalSize == 0. {
-		NormalSize = 1.
-	}
+
 
 	rawData_T := Transpose_float(rawData)
 	normData := make([][]float64, len(rawData))
@@ -383,25 +369,25 @@ func Normalized(rawData [][]float64, NormalSize float64) ([][]float64, []float64
 			normData[i] = append(normData[i], 0.0)
 		}
 	}
-	var max_list, min_list []float64
+	var mean_list, std_list []float64
 	for i := 0; i < len(rawData_T); i++ {
-		max_list = append(max_list, Mean(rawData_T[i]))
-		min_list = append(min_list, Std(rawData_T[i]))
+		mean_list = append(mean_list, Mean(rawData_T[i]))
+		std_list = append(std_list, Std(rawData_T[i])/weight[i])
 	}
 
 	for i := 0; i < len(rawData); i++ {
 		for j := 0; j < len(rawData[i]); j++ {
-			if math.Abs(min_list[j]) <= 0.00000001 {
-				normData[i][j] = (rawData[i][j] - max_list[j])
+			if math.Abs(std_list[j]) <= 0.00000001 {
+				normData[i][j] = (rawData[i][j] - mean_list[j])
 			} else {
-				normData[i][j] = (rawData[i][j] - max_list[j]) / (min_list[j])
+				normData[i][j] = (rawData[i][j] - mean_list[j]) / (std_list[j])
 			}
 		}
 	}
-	return normData, max_list, min_list
+	return normData, mean_list, std_list
 }
 
-func Normalize_adjust(rawData [][]float64, max_list, min_list []float64) [][]float64 {
+func Normalize_adjust(rawData [][]float64, mean_list, std_list []float64) [][]float64 {
 	normData := make([][]float64, len(rawData))
 	for i := 0; i < len(rawData); i++ {
 		for j := 0; j < len(rawData[i]); j++ {
@@ -411,21 +397,17 @@ func Normalize_adjust(rawData [][]float64, max_list, min_list []float64) [][]flo
 	
 	for i := 0; i < len(rawData); i++ {
 		for j := 0; j < len(rawData[i]); j++ {
-			if math.Abs(min_list[j]) <= 0.00000001 {
-				normData[i][j] = (rawData[i][j] - max_list[j])
+			if math.Abs(std_list[j]) <= 0.00000001 {
+				normData[i][j] = (rawData[i][j] - mean_list[j])
 			} else {
-				normData[i][j] = (rawData[i][j] - max_list[j]) / (min_list[j])
+				normData[i][j] = (rawData[i][j] - mean_list[j]) / (std_list[j])
 			}
 		}
 	}
 	return normData
 }
 
-func Generalize(normData [][]float64, max_list, min_list []float64, NormalSize float64) [][]float64 {
-	/* if NormalSize == 0. {
-		NormalSize = 1.
-	}
-	NormalSize = NormalSize * 2
+func Generalize(normData [][]float64, mean_list, std_list []float64) [][]float64 {
 	rawData := make([][]float64, len(normData))
 	for i := 0; i < len(normData); i++ {
 		for j := 0; j < len(normData[i]); j++ {
@@ -434,21 +416,7 @@ func Generalize(normData [][]float64, max_list, min_list []float64, NormalSize f
 	}
 	for i := 0; i < len(normData); i++ {
 		for j := 0; j < len(normData[i]); j++ {
-			rawData[i][j] = (normData[i][j]+NormalSize)*(max_list[j]-min_list[j])/NormalSize/2 + min_list[j]
-		}
-	} */
-	if NormalSize == 0. {
-		NormalSize = 1.
-	}
-	rawData := make([][]float64, len(normData))
-	for i := 0; i < len(normData); i++ {
-		for j := 0; j < len(normData[i]); j++ {
-			rawData[i] = append(rawData[i], 0.0)
-		}
-	}
-	for i := 0; i < len(normData); i++ {
-		for j := 0; j < len(normData[i]); j++ {
-			rawData[i][j] = normData[i][j]*min_list[j] + max_list[j]
+			rawData[i][j] = normData[i][j]*std_list[j] + mean_list[j]
 		}
 	}
 

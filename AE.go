@@ -26,7 +26,7 @@ type AE struct {
 	PredVal gorgonia.Value
 
 	Normal     bool
-	NormalSize float64
+	Normal_weight []float64
 	FitStock   Stock
 }
 
@@ -40,7 +40,7 @@ type AE_Encoder struct {
 	CoreVal gorgonia.Value
 
 	Normal     bool
-	NormalSize float64
+	Normal_weight []float64
 	FitStock   Stock
 }
 
@@ -54,7 +54,7 @@ type AE_Decoder struct {
 	PredVal gorgonia.Value
 
 	Normal     bool
-	NormalSize float64
+	Normal_weight []float64
 	FitStock   Stock
 }
 
@@ -69,7 +69,7 @@ type AE_Struction struct {
 	L1reg      float64
 	L2reg      float64
 	Normal     bool
-	NormalSize float64
+	Normal_weight []float64
 }
 
 func (m *AE) Learnables_Phase1() gorgonia.Nodes {
@@ -146,7 +146,7 @@ func NewAE(g *gorgonia.ExprGraph, S AE_Struction) *AE {
 		L1reg:      S.L1reg,
 		L2reg:      S.L2reg,
 		Normal:     S.Normal,
-		NormalSize: S.NormalSize,
+		Normal_weight: S.Normal_weight,
 	}
 }
 
@@ -182,7 +182,7 @@ func Clone_AE(m *AE) *AE {
 		Dropout:    m.Dropout,
 		Acti:       m.Acti,
 		Normal:     m.Normal,
-		NormalSize: m.NormalSize,
+		Normal_weight: m.Normal_weight,
 	}
 }
 
@@ -284,7 +284,7 @@ func (m *AE) Fit(x_ [][]float64, para TrainingParameter) {
 	//Normalize the input data. And stock the information into m.FitStock.
 	S := Stock{}
 	if m.Normal {
-		input_x, S.max_list_x, S.min_list_x = Normalized(x_, m.NormalSize)
+		input_x, S.mean_list_x, S.std_list_x = Normalized(x_, m.Normal_weight)
 	}
 
 	// set S into struct m.
@@ -506,7 +506,7 @@ func (m *AE) _encoder() *AE_Encoder {
 		B2:         b2,
 		Acti:       m.Acti[0:2],
 		Normal:     m.Normal,
-		NormalSize: m.NormalSize,
+		Normal_weight: m.Normal_weight,
 		FitStock:   m.FitStock,
 	}
 }
@@ -534,7 +534,7 @@ func (m *AE) _decoder() *AE_Decoder {
 		B4:         b4,
 		Acti:       m.Acti[2:],
 		Normal:     m.Normal,
-		NormalSize: m.NormalSize,
+		Normal_weight: m.Normal_weight,
 		FitStock:   m.FitStock,
 	}
 }
@@ -631,7 +631,7 @@ func (m *AE) Encode(x [][]float64) [][]float64 {
 	//Normalize the input data. And stock the information into m.FitStock.
 	input_x := x
 	if encoder.Normal {
-		input_x = Normalize_adjust(x, S.max_list_x, S.min_list_x)
+		input_x = Normalize_adjust(x, S.mean_list_x, S.std_list_x)
 	}
 
 	x_oneDim := ToOneDimSlice(input_x)
@@ -758,7 +758,7 @@ func (m *AE) Decode(core [][]float64) (prediction_gen [][]float64) {
 	}
 
 	if m.Normal {
-		prediction_gen = Generalize(prediction, S.max_list_x, S.min_list_x, m.NormalSize)
+		prediction_gen = Generalize(prediction, S.mean_list_x, S.std_list_x)
 	} else {
 		prediction_gen = prediction
 	}

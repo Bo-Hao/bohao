@@ -15,10 +15,10 @@ import (
 // A struct that stock the fitting data such as mean and standard error of the data and also save the loss when optimizing.
 type Stock struct {
 	LossRecord [][]float64
-	max_list_x []float64
-	min_list_x []float64
-	max_list_y []float64
-	min_list_y []float64
+	mean_list_x []float64
+	std_list_x []float64
+	mean_list_y []float64
+	std_list_y []float64
 }
 
 // Use as the input of newNN func. Neuron mean the number of node of each layer. Dropout mean the dropout ratio and Act denote the activation func of each layer.
@@ -28,7 +28,7 @@ type NetworkStruction struct {
 	Act        []ActivationFunc
 	Bias       bool
 	Normal     bool
-	NormalSize float64
+	Normal_weight []float64
 	L1reg      float64
 	L2reg      float64
 }
@@ -76,7 +76,7 @@ type NN struct {
 	PredVal gorgonia.Value
 
 	Normal     bool
-	NormalSize float64
+	Normal_weight []float64
 	L1reg      float64
 	L2reg      float64
 	FitStock   Stock
@@ -128,7 +128,7 @@ func NewNN(g *gorgonia.ExprGraph, S NetworkStruction) *NN {
 		D:          S.Dropout,
 		A:          S.Act,
 		Normal:     S.Normal,
-		NormalSize: S.NormalSize,
+		Normal_weight: S.Normal_weight,
 		L1reg:      S.L1reg,
 		L2reg:      S.L2reg,
 	}
@@ -216,7 +216,7 @@ func (n *NN) Clone_model(new_G *gorgonia.ExprGraph) NN {
 		D:          n.D,
 		A:          n.A,
 		Normal:     n.Normal,
-		NormalSize: n.NormalSize,
+		Normal_weight: n.Normal_weight,
 		FitStock:   n.FitStock,
 	}
 }
@@ -239,7 +239,7 @@ func (n *NN) Predict(x [][]float64) (prediction_gen [][]float64) {
 	//Normalize the input data. And stock the information into m.FitStock.
 	input_x := x
 	if m.Normal {
-		input_x = Normalize_adjust(x, m.FitStock.max_list_x, m.FitStock.min_list_x)
+		input_x = Normalize_adjust(x, m.FitStock.mean_list_x, m.FitStock.std_list_x)
 	}
 
 	x_oneDim := ToOneDimSlice(input_x)
@@ -300,7 +300,7 @@ func (n *NN) Predict(x [][]float64) (prediction_gen [][]float64) {
 
 	// generalize the output using the data which stock in m.FitStock.
 	if m.Normal {
-		prediction_gen = Generalize(prediction, n.FitStock.max_list_y, n.FitStock.min_list_y, m.NormalSize)
+		prediction_gen = Generalize(prediction, n.FitStock.mean_list_y, n.FitStock.std_list_y)
 	} else {
 		prediction_gen = prediction
 	}
@@ -314,8 +314,8 @@ func (m *NN) Fit(x_, y_ [][]float64, para TrainingParameter) {
 	//Normalize the input data. And stock the information into m.FitStock.
 	S := Stock{}
 	if m.Normal {
-		input_x, S.max_list_x, S.min_list_x = Normalized(x_, m.NormalSize)
-		input_y, S.max_list_y, S.min_list_y = Normalized(y_, m.NormalSize)
+		input_x, S.mean_list_x, S.std_list_x = Normalized(x_, m.Normal_weight)
+		input_y, S.mean_list_y, S.std_list_y = Normalized(y_, m.Normal_weight)
 	}
 
 	// set S into struct m.
@@ -540,27 +540,6 @@ func (m *NN) _RMSPropTrain(xT, yT *tensor.Dense, delivery fit_delivery) {
 	}
 	m.FitStock.LossRecord = S.LossRecord
 }
-
-/* func (m *NN) CrossFit(x_, y_ [][]float64, para TrainingParameter) {
-	input_x := x_
-	input_y := y_
-
-	split_x := make([][][]float64, 5)
-	split_y := make([][][]float64, 5)
-	stratumSize := int(float64(len(input_x)) / 5.)
-
-	stratum := -1
-	for i := 0; i < len(input_x); i++ {
-		if i%stratumSize == 0 {
-			stratum += 1
-		}
-		split_x[stratum] = append(split_x[stratum], input_x[i])
-		split_y[stratum] = append(split_y[stratum], input_y[i])
-	}
-	for i := 0; i < 5; i ++{
-
-	}
-} */
 
 func (m *NN) _TestOverfitting(x, y [][]float64) {
 	input_x := x
