@@ -483,3 +483,16 @@ func Percentile(Xs []float64, pctile float64) float64 {
 	}
 	return Xs[k-1] + frac*(Xs[k]-Xs[k-1])
 }
+
+func Factorial(n int) int{
+	res := 1
+	if n == 0{
+		return 1
+	}else {
+		for i := 1; i <= n; i ++{
+			res *= i 
+		}
+		return res 
+	}
+	
+}
