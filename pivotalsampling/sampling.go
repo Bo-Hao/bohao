@@ -1,4 +1,4 @@
-package pivotsampling
+package pivotalsampling
 
 import (
 	"fmt"
@@ -91,7 +91,7 @@ func standardizedDist(position [][]float64) [][]float64 {
 	return standPosition
 }
 
-func LocalPivotSampling(position [][]float64, incluProb []float64) []int {
+func LocalPivotalSampling(position [][]float64, incluProb []float64) []int {
 	NUnit := len(position)
 	if len(incluProb) == 1 {
 		prob := incluProb[0]
