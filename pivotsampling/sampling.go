@@ -75,10 +75,10 @@ func standardizedDist(position [][]float64) [][]float64 {
 	}
 
 	for i := 0; i < len(pT); i++ {
-		mid := (maxList[i] + minList[i])/2.
+		mid := (maxList[i] + minList[i]) / 2.
 		ran := maxList[i] - minList[i]
 		for j := 0; j < len(pT[i]); j++ {
-			pT[i][j] = (pT[i][j] - mid)/(ran/2)
+			pT[i][j] = (pT[i][j] - mid) / (ran / 2)
 		}
 	}
 
@@ -100,10 +100,9 @@ func LocalPivotSampling(position [][]float64, incluProb []float64) []int {
 			incluProb = append(incluProb, prob)
 		}
 	}
-	
-	position = standardizedDist(position)
-	fmt.Println(position)
 
+	position = standardizedDist(position)
+	
 
 	var positionMatrix [][][]float64
 	for i := 0; i < NUnit; i++ {
