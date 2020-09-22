@@ -45,13 +45,10 @@ func searchSmallest(sli [][]float64) int {
 	}
 
 	if len(smallestIndex) == 1 {
-		fmt.Println(len(smallestIndex), len(sli))
 		return smallestIndex[0]
 	}else if len(sli) == 1 {
-		fmt.Println(len(smallestIndex), len(sli))
 		return -1 
 	}else {
-		fmt.Println(len(smallestIndex), len(sli))
 		return smallestIndex[rand.Intn(len(smallestIndex))]
 	}
 }
@@ -84,7 +81,6 @@ func LocalPivotSampling(position [][]float64, incluProb []float64) []int {
 			}
 		}
 	}
-
 
 	for len(positionMatrix) > 1 {
 		sampleIndex := rand.Intn(len(positionMatrix))
@@ -146,88 +142,12 @@ func LocalPivotSampling(position [][]float64, incluProb []float64) []int {
 		}
 	}
 
-
-	
-
-	return []int{1, 2, 3}
-}
-
-func Do() {
-	var data, sample [][]float64
-
-	for i := 0; i < 625; i++ {
-		data = append(data, []float64{float64(i), float64(20. / 625.)})
-	}
-
-	for len(data) > 1 {
-		sampleIndex := rand.Intn(len(data))
-
-		var choose int
-		if sampleIndex+1 > len(data)-1 && sampleIndex-1 < 0 {
-			break
-		} else if sampleIndex-1 < 0 {
-			choose = sampleIndex + 1
-		} else if sampleIndex+1 > len(data)-1 {
-			choose = sampleIndex - 1
-		} else {
-			point := data[sampleIndex][0]
-			point1 := data[sampleIndex-1][0]
-			point2 := data[sampleIndex+1][0]
-			if math.Abs(point1-point) > math.Abs(point2-point) {
-				choose = sampleIndex + 1
-			} else if math.Abs(point1-point) < math.Abs(point2-point) {
-				choose = sampleIndex - 1
-			} else {
-				if rand.Float64() > 0.5 {
-					choose = sampleIndex - 1
-				} else {
-					choose = sampleIndex + 1
-				}
-			}
-		}
-
-		// updating
-		uniti := data[sampleIndex]
-		unitj := data[choose]
-
-		totalProb := uniti[1] + unitj[1]
-		if totalProb < 1 {
-			if rand.Float64() < unitj[1]/totalProb {
-				uniti[1] = 0
-				unitj[1] = totalProb
-			} else {
-				uniti[1] = totalProb
-				unitj[1] = 0
-			}
-		} else if uniti[1]+unitj[1] >= 1 {
-			if rand.Float64() < (1-unitj[1])/(2-totalProb) {
-				uniti[1] = 1
-				unitj[1] = totalProb - 1
-			} else {
-				uniti[1] = totalProb - 1
-				unitj[1] = 1
-			}
-		}
-
-		// check done
-		data[sampleIndex] = uniti
-		data[choose] = unitj
-
-		if uniti[1] == 1 {
-			sample = append(sample, uniti)
-		}
-		if unitj[1] == 1 {
-			sample = append(sample, unitj)
-		}
-
-		if data[sampleIndex][1] == 0 || data[sampleIndex][1] == 1 {
-			data = append(data[:sampleIndex], data[sampleIndex+1:]...)
-		} else if data[choose][1] == 0 || data[choose][1] == 1 {
-			data = append(data[:choose], data[choose+1:]...)
+	var sample []int	
+	for i := 0; i < len(incluProb); i++{
+		if incluProb[i] == 1{
+			sample = append(sample, i)
 		}
 	}
-	fmt.Println(sample)
-	fmt.Println(len(sample))
-	fmt.Println("done")
-	bohao.DrawXYScatterPlot(sample, "/Users/pengbohao/fushan/sequentialWork/all_combination/plot.html")
+
+	return sample
 }
