@@ -102,7 +102,6 @@ func LocalPivotalSampling(position [][]float64, incluProb []float64) []int {
 	}
 
 	position = standardizedDist(position)
-	
 
 	var positionMatrix [][][]float64
 	for i := 0; i < NUnit; i++ {
