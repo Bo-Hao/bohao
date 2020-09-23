@@ -14,23 +14,23 @@ import (
 
 // A struct that stock the fitting data such as mean and standard error of the data and also save the loss when optimizing.
 type Stock struct {
-	LossRecord [][]float64
+	LossRecord  [][]float64
 	mean_list_x []float64
-	std_list_x []float64
+	std_list_x  []float64
 	mean_list_y []float64
-	std_list_y []float64
+	std_list_y  []float64
 }
 
 // Use as the input of newNN func. Neuron mean the number of node of each layer. Dropout mean the dropout ratio and Act denote the activation func of each layer.
 type NetworkStruction struct {
-	Neuron     []int
-	Dropout    []float64
-	Act        []ActivationFunc
-	Bias       bool
-	Normal     bool
+	Neuron        []int
+	Dropout       []float64
+	Act           []ActivationFunc
+	Bias          bool
+	Normal        bool
 	Normal_weight []float64
-	L1reg      float64
-	L2reg      float64
+	L1reg         float64
+	L2reg         float64
 }
 
 // Stock the fitting parameters.
@@ -75,11 +75,11 @@ type NN struct {
 	Pred    *gorgonia.Node
 	PredVal gorgonia.Value
 
-	Normal     bool
+	Normal        bool
 	Normal_weight []float64
-	L1reg      float64
-	L2reg      float64
-	FitStock   Stock
+	L1reg         float64
+	L2reg         float64
+	FitStock      Stock
 }
 
 // Return the Nodes that should be optimized.
@@ -122,15 +122,15 @@ func NewNN(g *gorgonia.ExprGraph, S NetworkStruction) *NN {
 	}
 
 	return &NN{
-		G:          g,
-		W:          Ns,
-		B:          Bs,
-		D:          S.Dropout,
-		A:          S.Act,
-		Normal:     S.Normal,
+		G:             g,
+		W:             Ns,
+		B:             Bs,
+		D:             S.Dropout,
+		A:             S.Act,
+		Normal:        S.Normal,
 		Normal_weight: S.Normal_weight,
-		L1reg:      S.L1reg,
-		L2reg:      S.L2reg,
+		L1reg:         S.L1reg,
+		L2reg:         S.L2reg,
 	}
 }
 
@@ -210,14 +210,14 @@ func (n *NN) Clone_model(new_G *gorgonia.ExprGraph) NN {
 	}
 
 	return NN{
-		G:          new_G,
-		W:          ww,
-		B:          bb,
-		D:          n.D,
-		A:          n.A,
-		Normal:     n.Normal,
+		G:             new_G,
+		W:             ww,
+		B:             bb,
+		D:             n.D,
+		A:             n.A,
+		Normal:        n.Normal,
 		Normal_weight: n.Normal_weight,
-		FitStock:   n.FitStock,
+		FitStock:      n.FitStock,
 	}
 }
 

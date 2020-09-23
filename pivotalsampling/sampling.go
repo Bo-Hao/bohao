@@ -45,7 +45,7 @@ func searchSmallest(sli [][]float64) int {
 
 	if len(smallestIndex) == 1 {
 		return smallestIndex[0]
-	} else if len(sli) == 1 {
+	} else if len(sli) == 1 || len(smallestIndex) == 0 {
 		return -1
 	} else {
 		return smallestIndex[rand.Intn(len(smallestIndex))]
@@ -102,7 +102,6 @@ func LocalPivotalSampling(position [][]float64, incluProb []float64) []int {
 	}
 
 	position = standardizedDist(position)
-	
 
 	var positionMatrix [][][]float64
 	for i := 0; i < NUnit; i++ {
@@ -122,7 +121,7 @@ func LocalPivotalSampling(position [][]float64, incluProb []float64) []int {
 		}
 	}
 
-	for len(positionMatrix) > 1 {
+	for len(positionMatrix) > 2 {
 		sampleIndex := rand.Intn(len(positionMatrix))
 		choose := searchSmallest(positionMatrix[sampleIndex])
 		if choose == -1 {
