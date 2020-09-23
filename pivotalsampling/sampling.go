@@ -33,13 +33,13 @@ func searchSmallest(sli [][]float64) int {
 	}
 	var smallestIndex []int
 	for i := 0; i < len(sli); i++ {
-		if sli[i][0] < 0 {
-			continue
-		} else if sli[i][0] < infValue {
-			infValue = sli[i][0]
-			smallestIndex = []int{i}
-		} else if sli[i][0] == infValue {
-			smallestIndex = append(smallestIndex, i)
+		if sli[i][0] > 0 {
+			if sli[i][0] < infValue {
+				infValue = sli[i][0]
+				smallestIndex = []int{i}
+			} else if sli[i][0] == infValue {
+				smallestIndex = append(smallestIndex, i)
+			}
 		}
 	}
 
@@ -121,7 +121,7 @@ func LocalPivotalSampling(position [][]float64, incluProb []float64) []int {
 		}
 	}
 
-	for len(positionMatrix) > 2 {
+	for len(positionMatrix) > 1 {
 		sampleIndex := rand.Intn(len(positionMatrix))
 		choose := searchSmallest(positionMatrix[sampleIndex])
 		if choose == -1 {
