@@ -745,6 +745,7 @@ func (m *NN) _SelfOrganAdamTrain(xT, yT *tensor.Dense, delivery fit_delivery) {
 			if len(movingMeanLoss) == 0{
 				movingMeanLoss = append(movingMeanLoss, mean)
 			}else if math.Abs(mean - movingMeanLoss[len(movingMeanLoss)-1]) < std{
+				fmt.Println("Training end early at:", epoch)
 				break
 			}else {
 				movingMeanLoss = append(movingMeanLoss, mean)
@@ -855,6 +856,7 @@ func (m *NN) _SelfOrganRMSPropTrain(xT, yT *tensor.Dense, delivery fit_delivery)
 			if len(movingMeanLoss) == 0{
 				movingMeanLoss = append(movingMeanLoss, mean)
 			}else if math.Abs(mean - movingMeanLoss[len(movingMeanLoss)-1]) < std{
+				fmt.Println("Training end early at:", epoch)
 				break
 			}else {
 				movingMeanLoss = append(movingMeanLoss, mean)
