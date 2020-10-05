@@ -732,16 +732,16 @@ func (m *NN) _SelfOrganAdamTrain(xT, yT *tensor.Dense, delivery fit_delivery) {
 		
 		// Self Organizing
 		checkingPoint := 5.
-		if epoch % checkingPoint == 0 && len(S.LossRecord) > 4 {
+		if epoch % int(checkingPoint) == 0 && len(S.LossRecord) > 4 {
 			mean := 0. 
 			std := 0. 
-			for i := 0; i < checkingPoint; i ++{
-				value := S.LossRecord[len(S.LossRecord) - 1 - i]
+			for i := 0; i < int(checkingPoint); i ++{
+				value := S.LossRecord[len(S.LossRecord) - 1 - i][1]
 				mean += value / checkingPoint
 				std += math.Pow(value, 2) 
 			}
 
-			std = math.Sqrt((std - checkingPoint * mean)/ checcheckingPoint)
+			std = math.Sqrt((std - checkingPoint * mean)/ checkingPoint)
 			
 			if len(movingMeanLoss) == 0{
 				movingMeanLoss = append(movingMeanLoss, mean)
@@ -844,15 +844,16 @@ func (m *NN) _SelfOrganRMSPropTrain(xT, yT *tensor.Dense, delivery fit_delivery)
 
 		// Self Organizing
 		checkingPoint := 5.
-		if epoch % checkingPoint == 0 && len(S.LossRecord) > 4 {
+		if epoch % int(checkingPoint) == 0 && len(S.LossRecord) > 4 {
 			mean := 0. 
 			std := 0. 
-			for i := 0; i < checkingPoint; i ++{
-				value := S.LossRecord[len(S.LossRecord) - 1 - i]
+			for i := 0; i < int(checkingPoint); i ++{
+				value := S.LossRecord[len(S.LossRecord) - 1 - i][1]
 				mean += value / checkingPoint
 				std += math.Pow(value, 2) 
 			}
-			std = math.Sqrt((std - checkingPoint * mean)/ checcheckingPoint)
+
+			std = math.Sqrt((std - checkingPoint * mean)/ checkingPoint)
 			
 			if len(movingMeanLoss) == 0{
 				movingMeanLoss = append(movingMeanLoss, mean)
