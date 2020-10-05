@@ -729,26 +729,26 @@ func (m *NN) _SelfOrganAdamTrain(xT, yT *tensor.Dense, delivery fit_delivery) {
 		}
 		// Stock it.
 		S.LossRecord = append(S.LossRecord, []float64{float64(epoch), costVal.Data().(float64)})
-		
+
 		// Self Organizing
 		checkingPoint := 5.
-		if epoch % int(checkingPoint) == 0 && len(S.LossRecord) > 4 {
-			mean := 0. 
-			std := 0. 
-			for i := 0; i < int(checkingPoint); i ++{
-				value := S.LossRecord[len(S.LossRecord) - 1 - i][1]
+		if epoch%int(checkingPoint) == 0 && len(S.LossRecord) > 4 {
+			mean := 0.
+			std := 0.
+			for i := 0; i < int(checkingPoint); i++ {
+				value := S.LossRecord[len(S.LossRecord)-1-i][1]
 				mean += value / checkingPoint
-				std += math.Pow(value, 2) 
+				std += math.Pow(value, 2)
 			}
 
-			std = math.Sqrt((std - checkingPoint * mean)/ checkingPoint)
-			
-			if len(movingMeanLoss) == 0{
+			std = math.Sqrt((std - checkingPoint*mean) / checkingPoint)
+
+			if len(movingMeanLoss) == 0 {
 				movingMeanLoss = append(movingMeanLoss, mean)
-			}else if math.Abs(mean - movingMeanLoss[len(movingMeanLoss)-1]) < std{
+			} else if math.Abs(mean-movingMeanLoss[len(movingMeanLoss)-1]) < std {
 				fmt.Println("Training end early at:", epoch)
 				break
-			}else {
+			} else {
 				movingMeanLoss = append(movingMeanLoss, mean)
 			}
 		}
@@ -756,7 +756,7 @@ func (m *NN) _SelfOrganAdamTrain(xT, yT *tensor.Dense, delivery fit_delivery) {
 	m.FitStock.LossRecord = S.LossRecord
 }
 
-func (m *NN) _SelfOrganRMSPropTrain(xT, yT *tensor.Dense, delivery fit_delivery) {
+func (m *NN) SelfOrganRMSPropTrain(xT, yT *tensor.Dense, delivery fit_delivery) {
 	batches := delivery.batches
 	batchSize := delivery.batchsize
 	inputShape := delivery.inputShape
@@ -844,23 +844,23 @@ func (m *NN) _SelfOrganRMSPropTrain(xT, yT *tensor.Dense, delivery fit_delivery)
 
 		// Self Organizing
 		checkingPoint := 5.
-		if epoch % int(checkingPoint) == 0 && len(S.LossRecord) > 4 {
-			mean := 0. 
-			std := 0. 
-			for i := 0; i < int(checkingPoint); i ++{
-				value := S.LossRecord[len(S.LossRecord) - 1 - i][1]
+		if epoch%int(checkingPoint) == 0 && len(S.LossRecord) > 4 {
+			mean := 0.
+			std := 0.
+			for i := 0; i < int(checkingPoint); i++ {
+				value := S.LossRecord[len(S.LossRecord)-1-i][1]
 				mean += value / checkingPoint
-				std += math.Pow(value, 2) 
+				std += math.Pow(value, 2)
 			}
 
-			std = math.Sqrt((std - checkingPoint * mean)/ checkingPoint)
-			
-			if len(movingMeanLoss) == 0{
+			std = math.Sqrt((std - checkingPoint*mean) / checkingPoint)
+
+			if len(movingMeanLoss) == 0 {
 				movingMeanLoss = append(movingMeanLoss, mean)
-			}else if math.Abs(mean - movingMeanLoss[len(movingMeanLoss)-1]) < std{
+			} else if math.Abs(mean-movingMeanLoss[len(movingMeanLoss)-1]) < std {
 				fmt.Println("Training end early at:", epoch)
 				break
-			}else {
+			} else {
 				movingMeanLoss = append(movingMeanLoss, mean)
 			}
 		}
