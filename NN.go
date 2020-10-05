@@ -756,7 +756,7 @@ func (m *NN) _SelfOrganAdamTrain(xT, yT *tensor.Dense, delivery fit_delivery) {
 	m.FitStock.LossRecord = S.LossRecord
 }
 
-func (m *NN) SelfOrganRMSPropTrain(xT, yT *tensor.Dense, delivery fit_delivery) {
+func (m *NN) _SelfOrganRMSPropTrain(xT, yT *tensor.Dense, delivery fit_delivery) {
 	batches := delivery.batches
 	batchSize := delivery.batchsize
 	inputShape := delivery.inputShape
