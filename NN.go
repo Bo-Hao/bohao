@@ -723,10 +723,6 @@ func (m *NN) _SelfOrganAdamTrain(xT, yT *tensor.Dense, delivery fit_delivery) {
 			vm.Reset()
 		}
 
-		// Print cost
-		if epoch%100 == 0 {
-			fmt.Println("Iteration: ", epoch, "  Cost: ", costVal)
-		}
 		// Stock it.
 		S.LossRecord = append(S.LossRecord, []float64{float64(epoch), costVal.Data().(float64)})
 
