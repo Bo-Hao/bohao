@@ -77,6 +77,9 @@ func standardizedDist(position [][]float64) [][]float64 {
 	for i := 0; i < len(pT); i++ {
 		mid := (maxList[i] + minList[i]) / 2.
 		ran := maxList[i] - minList[i]
+		if ran == 0. {
+			ran = 1.
+		}
 		for j := 0; j < len(pT[i]); j++ {
 			pT[i][j] = (pT[i][j] - mid) / (ran / 2)
 		}
@@ -145,7 +148,8 @@ func LocalPivotalSampling(position [][]float64, incluProb []float64) []int {
 				prob1 = totalProb
 				prob2 = 0
 			}
-		} else if totalProb >= 1 {
+			/* } else if totalProb >= 1 { */
+		} else {
 			if rand.Float64() < (1-prob2)/(2-totalProb) {
 				prob1 = 1
 				prob2 = totalProb - 1
@@ -187,6 +191,5 @@ func LocalPivotalSampling(position [][]float64, incluProb []float64) []int {
 			sample = append(sample, i)
 		}
 	}
-
 	return sample
 }
