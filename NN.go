@@ -195,7 +195,7 @@ func (m NN) ValueToFloatSlice() (result [][]float64) {
 	return
 }
 
-func (n *NN) Clone_model(new_G *gorgonia.ExprGraph) NN {
+func (n *NN) Clone_model(new_G *gorgonia.ExprGraph) *NN {
 	var ww, bb []*gorgonia.Node
 	for i := 0; i < len(n.W); i++ {
 		xT := tensor.New(tensor.WithBacking(n.W[i].Value().Data()), tensor.WithShape(n.W[i].Shape()[0], n.W[i].Shape()[1]))
@@ -209,7 +209,7 @@ func (n *NN) Clone_model(new_G *gorgonia.ExprGraph) NN {
 		bb = append(bb, b)
 	}
 
-	return NN{
+	return &NN{
 		G:             new_G,
 		W:             ww,
 		B:             bb,
@@ -587,6 +587,9 @@ func (m *NN) Tear_apart(g *gorgonia.ExprGraph, layer_in, layer_out int) NN {
 func (m *NN) SelfOrganFit(x_, y_ [][]float64, para TrainingParameter) {
 	input_x := x_
 	input_y := y_
+	if len(input_x) != len(input_y) {
+		panic("x and y are not in the same size!")
+	}
 
 	//Normalize the input data. And stock the information into m.FitStock.
 	S := Stock{}
@@ -602,10 +605,6 @@ func (m *NN) SelfOrganFit(x_, y_ [][]float64, para TrainingParameter) {
 	x_oneDim := ToOneDimSlice(input_x)
 	y_oneDim := ToOneDimSlice(input_y)
 	sampleSize := len(input_x)
-
-	if sampleSize != len(input_y) {
-		panic("x and y are not in the same size!")
-	}
 
 	// Define shapes
 	inputShape := m.W[0].Shape()[0]
