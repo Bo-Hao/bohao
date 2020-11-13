@@ -362,7 +362,6 @@ func (m *NN) Fit(x_, y_ [][]float64, para TrainingParameter) {
 	} else if para.Solver == "Adam" {
 		m._AdamTrain(xT, yT, delivery)
 	}
-	log.Printf("training finish!")
 }
 
 func (m *NN) _AdamTrain(xT, yT *tensor.Dense, delivery fit_delivery) {
