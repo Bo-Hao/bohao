@@ -56,19 +56,19 @@ func RMSError(Pred, y *gorgonia.Node) *gorgonia.Node {
 	return cost
 }
 
-func CrossEntropy(Pred, y *gorgonia.Node) *gorgonia.Node {
-	losses := gorgonia.Must(gorgonia.HadamardProd(Pred, y))
-	cost := gorgonia.Must(gorgonia.Mean(losses))
-	cost = gorgonia.Must(gorgonia.Neg(cost))
-
-	return cost
-}
-
 func RatioLoss(Pred, y *gorgonia.Node) *gorgonia.Node {
-
 	losses := gorgonia.Must(gorgonia.Square(gorgonia.Must(gorgonia.Div(Pred, y))))
 	l := gorgonia.Must(gorgonia.Log(losses))
 	cost := gorgonia.Must(gorgonia.Mean(l))
+	return cost
+}
+
+func CrossEntropy(Pred, y *gorgonia.Node) *gorgonia.Node {
+
+	losses := gorgonia.Must(gorgonia.HadamardProd(gorgonia.Must(gorgonia.Log(Pred)), y))
+	cost := gorgonia.Must(gorgonia.Mean(losses))
+	cost = gorgonia.Must(gorgonia.Neg(cost))
+
 	return cost
 }
 
