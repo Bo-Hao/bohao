@@ -442,10 +442,10 @@ func (m *NN) _AdamTrain(xT, yT *tensor.Dense, delivery fit_delivery) {
 			vm.Reset()
 		}
 
-		// Print cost
+		/* // Print cost
 		if epoch%100 == 0 {
 			fmt.Println("Iteration: ", epoch, "  Cost: ", costVal)
-		}
+		} */
 		// Stock it.
 		S.LossRecord = append(S.LossRecord, []float64{float64(epoch), costVal.Data().(float64)})
 	}
@@ -530,10 +530,11 @@ func (m *NN) _RMSPropTrain(xT, yT *tensor.Dense, delivery fit_delivery) {
 			vm.Reset()
 		}
 
-		// Print cost
+		/* // Print cost
 		if epoch%100 == 0 {
 			fmt.Println("Iteration: ", epoch, "  Cost: ", costVal)
-		}
+		} */
+
 		// Stock it.
 		S.LossRecord = append(S.LossRecord, []float64{float64(epoch), costVal.Data().(float64)})
 	}
