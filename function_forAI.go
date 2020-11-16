@@ -2,6 +2,7 @@ package bohao
 
 import (
 	"math"
+	"log"
 
 	"gorgonia.org/gorgonia"
 )
@@ -33,6 +34,15 @@ type ActivationFunc func(a *gorgonia.Node) (*gorgonia.Node, error)
 // Do nothing activation function.
 func Linear(a *gorgonia.Node) (*gorgonia.Node, error) {
 	return a, nil
+}
+
+func Softmax(a *gorgonia.Node) (*gorgonia.Node, error){
+	r, err := gorgonia.SoftMax(a, 1)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return r, nil
 }
 
 // Define loss function type
