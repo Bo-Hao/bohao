@@ -2,6 +2,7 @@ package bohao
 
 import (
 	"math"
+
 	"gorgonia.org/gorgonia"
 )
 
@@ -39,12 +40,12 @@ type LossFunc func(Pred, y *gorgonia.Node) *gorgonia.Node
 
 // Simple RMS error loss function
 func RMSError(Pred, y *gorgonia.Node) *gorgonia.Node {
-	
+
 	s, err := gorgonia.Sub(Pred, y)
 	if err != nil {
 		panic(err)
 	}
-	losses, err :=gorgonia.Square(s)
+	losses, err := gorgonia.Square(s)
 	if err != nil {
 		panic(err)
 	}
@@ -52,6 +53,14 @@ func RMSError(Pred, y *gorgonia.Node) *gorgonia.Node {
 	if err != nil {
 		panic(err)
 	}
+	return cost
+}
+
+func CrossEntropy(Pred, y *gorgonia.Node) *gorgonia.Node {
+	losses := gorgonia.Must(gorgonia.HadamardProd(Pred, y))
+	cost := gorgonia.Must(gorgonia.Mean(losses))
+	cost = gorgonia.Must(gorgonia.Neg(cost))
+
 	return cost
 }
 
@@ -63,7 +72,7 @@ func RatioLoss(Pred, y *gorgonia.Node) *gorgonia.Node {
 	return cost
 }
 
-func Cal_Batch(samplesize, batchsize int) (BatchSize, batches int){
+func Cal_Batch(samplesize, batchsize int) (BatchSize, batches int) {
 	BatchSize = batchsize
 	if BatchSize > samplesize {
 		BatchSize = samplesize
@@ -71,12 +80,12 @@ func Cal_Batch(samplesize, batchsize int) (BatchSize, batches int){
 		BatchSize = 2
 	}
 	batches = int(math.Ceil(float64(samplesize) / float64(BatchSize)))
-	return 
+	return
 }
 
 func Value2Float(PredVal gorgonia.Value, outputshape int) (result [][]float64) {
-	oneDimSlice :=PredVal.Data().([]float64)
-	outputShape := outputshape 
+	oneDimSlice := PredVal.Data().([]float64)
+	outputShape := outputshape
 	var tmp []float64
 
 	for i := 0; i < len(oneDimSlice); i++ {
