@@ -425,8 +425,9 @@ func (m *NN) _AdamTrain(xT, yT *tensor.Dense, delivery fit_delivery) {
 			gorgonia.Read(cost, &costVal)
 
 			// Update the gradient.
+
 			if _, err = gorgonia.Grad(cost, m.Learnables()...); err != nil {
-				log.Fatal("Unable to udate gradient")
+				log.Fatal("Unable to update gradient")
 			}
 
 			// Define the tape machine to record the gradient change for the nodes which should be optimized or activated.
@@ -514,7 +515,7 @@ func (m *NN) _RMSPropTrain(xT, yT *tensor.Dense, delivery fit_delivery) {
 
 			// Update the gradient.
 			if _, err = gorgonia.Grad(cost, m.Learnables()...); err != nil {
-				log.Fatal("Unable to udate gradient")
+				log.Fatal("Unable to update gradient")
 			}
 
 			// Define the tape machine to record the gradient change for the nodes which should be optimized or activated.
@@ -706,7 +707,7 @@ func (m *NN) _SelfOrganAdamTrain(xT, yT *tensor.Dense, delivery fit_delivery) {
 
 			// Update the gradient.
 			if _, err = gorgonia.Grad(cost, m.Learnables()...); err != nil {
-				log.Fatal("Unable to udate gradient")
+				log.Fatal("Unable to update gradient")
 			}
 
 			// Define the tape machine to record the gradient change for the nodes which should be optimized or activated.
@@ -814,7 +815,7 @@ func (m *NN) _SelfOrganRMSPropTrain(xT, yT *tensor.Dense, delivery fit_delivery)
 
 			// Update the gradient.
 			if _, err = gorgonia.Grad(cost, m.Learnables()...); err != nil {
-				log.Fatal("Unable to udate gradient")
+				log.Fatal("Unable to update gradient")
 			}
 
 			// Define the tape machine to record the gradient change for the nodes which should be optimized or activated.

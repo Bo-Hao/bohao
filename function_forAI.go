@@ -1,8 +1,8 @@
 package bohao
 
 import (
-	"math"
 	"log"
+	"math"
 
 	"gorgonia.org/gorgonia"
 )
@@ -36,7 +36,7 @@ func Linear(a *gorgonia.Node) (*gorgonia.Node, error) {
 	return a, nil
 }
 
-func Softmax(a *gorgonia.Node) (*gorgonia.Node, error){
+func Softmax(a *gorgonia.Node) (*gorgonia.Node, error) {
 	r, err := gorgonia.SoftMax(a, 1)
 	if err != nil {
 		log.Fatal(err)
@@ -78,6 +78,30 @@ func CrossEntropy(Pred, y *gorgonia.Node) *gorgonia.Node {
 	losses := gorgonia.Must(gorgonia.HadamardProd(gorgonia.Must(gorgonia.Log(Pred)), y))
 	cost := gorgonia.Must(gorgonia.Mean(losses))
 	cost = gorgonia.Must(gorgonia.Neg(cost))
+
+	return cost
+}
+
+func PseudoHuberLoss(Pred, y *gorgonia.Node) *gorgonia.Node {
+	delta1 := gorgonia.NewScalar(Pred.Graph(), gorgonia.Float64, gorgonia.WithValue(float64(1.5)))
+	delta2 := gorgonia.Must(gorgonia.Square(delta1))
+	one := gorgonia.NewScalar(Pred.Graph(), gorgonia.Float64, gorgonia.WithValue(float64(1.0)))
+	
+	loss := gorgonia.Must(gorgonia.Sub(Pred, y))
+
+	loss = gorgonia.Must(gorgonia.Div(loss, delta1))
+
+	loss = gorgonia.Must(gorgonia.Square(loss))
+
+	loss = gorgonia.Must(gorgonia.Add(one, loss))
+
+	loss = gorgonia.Must(gorgonia.Sqrt(loss))
+
+	loss = gorgonia.Must(gorgonia.Sub(loss, one))
+
+	loss = gorgonia.Must(gorgonia.Mul(delta2, loss))
+
+	cost := gorgonia.Must(gorgonia.Mean(loss))
 
 	return cost
 }
