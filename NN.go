@@ -243,12 +243,11 @@ func (n *NN) Predict(x [][]float64) (prediction_gen [][]float64) {
 	}
 
 	x_oneDim := ToOneDimSlice(input_x)
-	for i := 0; i < inputShape; i++ {
-		x_oneDim = append(x_oneDim, x_oneDim[len(x_oneDim)-inputShape+i])
-	}
+	x_oneDim = append(x_oneDim, x_oneDim[len(x_oneDim)-inputShape:]...)
 
 	// Construct the input data tensor.
 	xT := tensor.New(tensor.WithBacking(x_oneDim), tensor.WithShape(sampleSize+1, inputShape))
+
 
 	// make prediction in batch.
 	var prediction [][]float64

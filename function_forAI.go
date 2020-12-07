@@ -21,9 +21,7 @@ func (s sli) Step() int  { return 1 }
 // Data should be reshape by tensor module.
 func ToOneDimSlice(sli [][]float64) (result []float64) {
 	for i := 0; i < len(sli); i++ {
-		for j := 0; j < len(sli[i]); j++ {
-			result = append(result, sli[i][j])
-		}
+		result = append(result, sli[i]...)
 	}
 	return
 }
@@ -86,7 +84,7 @@ func PseudoHuberLoss(Pred, y *gorgonia.Node) *gorgonia.Node {
 	delta1 := gorgonia.NewScalar(Pred.Graph(), gorgonia.Float64, gorgonia.WithValue(float64(1.5)))
 	delta2 := gorgonia.Must(gorgonia.Square(delta1))
 	one := gorgonia.NewScalar(Pred.Graph(), gorgonia.Float64, gorgonia.WithValue(float64(1.0)))
-	
+
 	loss := gorgonia.Must(gorgonia.Sub(Pred, y))
 
 	loss = gorgonia.Must(gorgonia.Div(loss, delta1))
