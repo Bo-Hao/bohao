@@ -47,7 +47,7 @@ func Softmax(a *gorgonia.Node) (*gorgonia.Node, error) {
 type LossFunc func(Pred, y *gorgonia.Node) *gorgonia.Node
 
 // Simple RMS error loss function
-func RMSError(Pred, y *gorgonia.Node) *gorgonia.Node {
+func MSError(Pred, y *gorgonia.Node) *gorgonia.Node {
 
 	s, err := gorgonia.Sub(Pred, y)
 	if err != nil {
@@ -61,6 +61,8 @@ func RMSError(Pred, y *gorgonia.Node) *gorgonia.Node {
 	if err != nil {
 		panic(err)
 	}
+
+	
 	return cost
 }
 
@@ -80,14 +82,11 @@ func CrossEntropy(Pred, y *gorgonia.Node) *gorgonia.Node {
 	return cost
 }
 
-func PseudoHuberLoss(Pred, y *gorgonia.Node) *gorgonia.Node {
-	delta1 := gorgonia.NewScalar(Pred.Graph(), gorgonia.Float64, gorgonia.WithValue(float64(1.5)))
-	delta2 := gorgonia.Must(gorgonia.Square(delta1))
+func PseudoHuberLossDelta1(Pred, y *gorgonia.Node) *gorgonia.Node {
+	
 	one := gorgonia.NewScalar(Pred.Graph(), gorgonia.Float64, gorgonia.WithValue(float64(1.0)))
 
 	loss := gorgonia.Must(gorgonia.Sub(Pred, y))
-
-	loss = gorgonia.Must(gorgonia.Div(loss, delta1))
 
 	loss = gorgonia.Must(gorgonia.Square(loss))
 
@@ -96,8 +95,6 @@ func PseudoHuberLoss(Pred, y *gorgonia.Node) *gorgonia.Node {
 	loss = gorgonia.Must(gorgonia.Sqrt(loss))
 
 	loss = gorgonia.Must(gorgonia.Sub(loss, one))
-
-	loss = gorgonia.Must(gorgonia.Mul(delta2, loss))
 
 	cost := gorgonia.Must(gorgonia.Mean(loss))
 

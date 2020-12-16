@@ -49,7 +49,7 @@ func InitParameter() TrainingParameter {
 		Epoches:   200,
 		BatchSize: 500,
 		Solver:    "RMSProp",
-		Lossfunc:  RMSError,
+		Lossfunc:  MSError,
 	}
 }
 
@@ -247,7 +247,6 @@ func (n *NN) Predict(x [][]float64) (prediction_gen [][]float64) {
 
 	// Construct the input data tensor.
 	xT := tensor.New(tensor.WithBacking(x_oneDim), tensor.WithShape(sampleSize+1, inputShape))
-
 
 	// make prediction in batch.
 	var prediction [][]float64
