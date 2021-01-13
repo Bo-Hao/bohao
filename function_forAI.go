@@ -1,6 +1,7 @@
 package bohao
 
 import (
+	"fmt"
 	"log"
 	"math"
 
@@ -62,14 +63,17 @@ func MSError(Pred, y *gorgonia.Node) *gorgonia.Node {
 		panic(err)
 	}
 
-	
 	return cost
 }
 
 func RatioLoss(Pred, y *gorgonia.Node) *gorgonia.Node {
-	losses := gorgonia.Must(gorgonia.Square(gorgonia.Must(gorgonia.Div(Pred, y))))
-	l := gorgonia.Must(gorgonia.Log(losses))
-	cost := gorgonia.Must(gorgonia.Mean(l))
+	one := gorgonia.NewScalar(Pred.Graph(), gorgonia.Float64, gorgonia.WithName("1"), gorgonia.WithValue(float64(1.0)))
+
+	ratio := gorgonia.Must(gorgonia.Div(Pred, y))
+	minus := gorgonia.Must(gorgonia.Sub(one, ratio))
+	loss := gorgonia.Must(gorgonia.Square(minus))
+	cost := gorgonia.Must(gorgonia.Mean(loss))
+	
 	return cost
 }
 
@@ -84,7 +88,7 @@ func CrossEntropy(Pred, y *gorgonia.Node) *gorgonia.Node {
 
 func PseudoHuberLossDelta1(Pred, y *gorgonia.Node) *gorgonia.Node {
 	
-	one := gorgonia.NewScalar(Pred.Graph(), gorgonia.Float64, gorgonia.WithValue(float64(1.0)))
+	one := gorgonia.NewScalar(Pred.Graph(), gorgonia.Float64, gorgonia.WithName("1"), gorgonia.WithValue(float64(1.0)))
 
 	loss := gorgonia.Must(gorgonia.Sub(Pred, y))
 
@@ -96,6 +100,38 @@ func PseudoHuberLossDelta1(Pred, y *gorgonia.Node) *gorgonia.Node {
 
 	loss = gorgonia.Must(gorgonia.Sub(loss, one))
 
+	cost := gorgonia.Must(gorgonia.Mean(loss))
+
+	return cost
+}
+
+func HuberLoss(Pred, y *gorgonia.Node) *gorgonia.Node {
+	var loss, LtNode, GteNode *gorgonia.Node
+	delta := gorgonia.NewScalar(Pred.Graph(), gorgonia.Float64, gorgonia.WithName("delta"), gorgonia.WithValue(float64(1.5)))
+	pointFive := gorgonia.NewScalar(Pred.Graph(), gorgonia.Float64, gorgonia.WithName("0.5"), gorgonia.WithValue(float64(0.5)))
+	zero := gorgonia.NewScalar(Pred.Graph(), gorgonia.Float64, gorgonia.WithName("0."), gorgonia.WithValue(float64(0.)))
+	deltaPointFive := gorgonia.Must(gorgonia.Mul(delta, pointFive))
+
+	loss, err := gorgonia.Sub(Pred, y)
+	if err != nil {
+		fmt.Println("wrong")
+	}
+	lossABS := gorgonia.Must(gorgonia.Abs(loss))
+
+	GteNode = gorgonia.Must(gorgonia.Lt(lossABS, delta, true))
+	LtNode = gorgonia.Must(gorgonia.Eq(GteNode, zero, true))
+
+	lossG := gorgonia.Must(gorgonia.HadamardProd(lossABS, GteNode))
+	lossG = gorgonia.Must(gorgonia.Square(lossG))
+	lossG = gorgonia.Must(gorgonia.Mul(pointFive, lossG))
+
+	lossL := gorgonia.Must(gorgonia.HadamardProd(lossABS, LtNode))
+	maskPoint5 := gorgonia.Must(gorgonia.Mul(deltaPointFive, LtNode))
+
+	lossL = gorgonia.Must(gorgonia.Sub(lossL, maskPoint5))
+	lossL = gorgonia.Must(gorgonia.Mul(delta, lossL))
+
+	loss = gorgonia.Must(gorgonia.Add(lossG, lossL))
 	cost := gorgonia.Must(gorgonia.Mean(loss))
 
 	return cost

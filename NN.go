@@ -377,10 +377,13 @@ func (m *NN) _AdamTrain(xT, yT *tensor.Dense, delivery fit_delivery) {
 	solver := gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(batchSize)), gorgonia.WithLearnRate(learning_rate), gorgonia.WithL1Reg(m.L1reg), gorgonia.WithL2Reg(m.L2reg))
 	// Start epoches training
 	for epoch := 0; epoch < para.Epoches; epoch++ {
-		if epoch == int(para.Epoches/2) {
+		learning_rate = 2. / (2.+ float64(epoch))
+		solver = gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(batchSize)), gorgonia.WithLearnRate(learning_rate), gorgonia.WithL1Reg(m.L1reg), gorgonia.WithL2Reg(m.L2reg))
+		
+		/* if epoch == int(para.Epoches/2) {
 			learning_rate /= 10
 			solver = gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(batchSize)), gorgonia.WithLearnRate(learning_rate), gorgonia.WithL1Reg(m.L1reg), gorgonia.WithL2Reg(m.L2reg))
-		}
+		} */
 		// Start batches...
 		for b := 0; b < batches; b++ {
 
@@ -442,6 +445,9 @@ func (m *NN) _AdamTrain(xT, yT *tensor.Dense, delivery fit_delivery) {
 			vm.Reset()
 		}
 
+		/* if epoch%10 == 0 {
+			fmt.Println("Iteration: ", epoch, "  Cost: ", costVal)
+		}  */
 		/* // Print cost
 		if epoch%100 == 0 {
 			fmt.Println("Iteration: ", epoch, "  Cost: ", costVal)
