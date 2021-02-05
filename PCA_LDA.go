@@ -9,6 +9,7 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
+// PCA : 
 type PCA struct {
 	Data        [][]float64
 	Eigenvalue  []float64
@@ -16,12 +17,12 @@ type PCA struct {
 	Explain     float64
 }
 
-func (P *PCA) cal_needed_dim(f float64) (num_comp int) {
-	total := Sum_float(P.Eigenvalue)
+func (P *PCA) calNeededDim(f float64) (numComp int) {
+	total := SumFloat(P.Eigenvalue)
 	explain := 0.
 	for i := 0; i < len(P.Eigenvalue); i++ {
 		explain += P.Eigenvalue[i]
-		num_comp += 1
+		numComp ++
 		if explain/total >= f {
 			P.Explain = explain / total
 			break
@@ -30,10 +31,10 @@ func (P *PCA) cal_needed_dim(f float64) (num_comp int) {
 	return
 }
 
-func (P *PCA) cal_explain(num_comp int) (f float64) {
-	total := Sum_float(P.Eigenvalue)
+func (P *PCA) calExplain(numComp int) (f float64) {
+	total := SumFloat(P.Eigenvalue)
 	explain := 0.
-	for i := 0; i < num_comp; i++ {
+	for i := 0; i < numComp; i++ {
 		explain += P.Eigenvalue[i]
 		f = explain / total
 	}
@@ -41,10 +42,10 @@ func (P *PCA) cal_explain(num_comp int) (f float64) {
 	return
 }
 
-func (P *PCA) decide_numcomp(dim string) int {
+func (P *PCA) decideNumComp(dim string) int {
 	var err error
 	// Decide number of component
-	num_comp := 0
+	numComp := 0
 	if strings.Contains(dim, "%") {
 		f, err := strconv.ParseFloat(dim[:len(dim)-1], 64)
 		if err != nil {
@@ -54,7 +55,7 @@ func (P *PCA) decide_numcomp(dim string) int {
 		if f/100 > 1. || f/100 < 0. {
 			panic("Should be within [0., 1.]")
 		}
-		num_comp = P.cal_needed_dim(f / 100)
+		numComp = P.calNeededDim(f / 100)
 	} else if strings.Contains(dim, ".") {
 		f, err := strconv.ParseFloat(dim, 64)
 		if err != nil {
@@ -63,38 +64,40 @@ func (P *PCA) decide_numcomp(dim string) int {
 		if f > 1. || f < 0. {
 			panic("Should be within [0., 1.]")
 		}
-		num_comp = P.cal_needed_dim(f / 100)
+		numComp = P.calNeededDim(f / 100)
 	} else {
-		num_comp, err = strconv.Atoi(dim)
-		P.cal_explain(num_comp)
+		numComp, err = strconv.Atoi(dim)
+		P.calExplain(numComp)
 		if err != nil {
 			panic(err)
 		}
 	}
 
-	if num_comp > len(P.Eigenvalue) {
-		num_comp = len(P.Eigenvalue)
-	} else if num_comp <= 0. {
-		num_comp = 1
+	if numComp > len(P.Eigenvalue) {
+		numComp = len(P.Eigenvalue)
+	} else if numComp <= 0. {
+		numComp = 1
 	}
-	return num_comp
+	return numComp
 }
 
-func (P *PCA) Reduce_data_dim(data [][]float64, dim string) [][]float64 {
-	num_comp := P.decide_numcomp(dim)
+// ReduceDataDim : 
+func (P *PCA) ReduceDataDim(data [][]float64, dim string) [][]float64 {
+	numComp := P.decideNumComp(dim)
 
-	new_data := make([][]float64, num_comp)
-	for component := 0; component < num_comp; component++ {
+	newData := make([][]float64, numComp)
+	for component := 0; component < numComp; component++ {
 		vector := P.Eigenvector[component]
 		for i := 0; i < len(data); i++ {
 			SumProduct(vector, data[i])
-			new_data[component] = append(new_data[component], SumProduct(vector, data[i]))
+			newData[component] = append(newData[component], SumProduct(vector, data[i]))
 		}
 	}
-	return Transpose_float(new_data)
+	return TransposeFloat(newData)
 }
 
-func Cal_PCA(input [][]float64) PCA {
+// CalPCA : 
+func CalPCA(input [][]float64) PCA {
 	var Eigenvalue []float64
 	var Eigenvector [][]float64
 
@@ -102,16 +105,16 @@ func Cal_PCA(input [][]float64) PCA {
 	c := len(input[0])
 
 	// normalization
-	input_T := Transpose_float(input)
+	inputT := TransposeFloat(input)
 	data := make([]float64, r*c)
 	for i := 0; i < c; i++ {
-		mean_list := Std(input_T[i])
-		std_list := Mean(input_T[i])
+		meanList := Std(inputT[i])
+		stdList := Mean(inputT[i])
 		for j := 0; j < r; j++ {
-			if std_list == 0 {
-				data[j*c+i] = (input[j][i] - mean_list)
+			if stdList == 0 {
+				data[j*c+i] = (input[j][i] - meanList)
 			} else {
-				data[j*c+i] = (input[j][i] - mean_list) / std_list
+				data[j*c+i] = (input[j][i] - meanList) / stdList
 			}
 
 		}
@@ -119,8 +122,8 @@ func Cal_PCA(input [][]float64) PCA {
 
 	var BB, phi mat.Dense
 	B := mat.NewDense(r, c, data)
-	B_T := mat.DenseCopyOf(B.T())
-	BB.Mul(B_T, B)
+	BT := mat.DenseCopyOf(B.T())
+	BB.Mul(BT, B)
 	phi.Scale(1./float64(r-1), &BB)
 
 	r, c = phi.Dims()
@@ -130,9 +133,9 @@ func Cal_PCA(input [][]float64) PCA {
 			data = append(data, phi.At(i, j))
 		}
 	}
-	phi_ := mat.NewSymDense(r, data)
+	phi1 := mat.NewSymDense(r, data)
 	var eigsym mat.EigenSym
-	ok := eigsym.Factorize(phi_, true)
+	ok := eigsym.Factorize(phi1, true)
 	if !ok {
 		panic("Symmetric eigendecomposition failed")
 	}

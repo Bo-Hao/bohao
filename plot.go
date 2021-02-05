@@ -7,6 +7,7 @@ import (
 	"github.com/go-echarts/go-echarts/charts"
 )
 
+// DrawXYScatterPlot : 
 func DrawXYScatterPlot(data [][]float64, savePlace string) {
 	scatter := charts.NewScatter()
 	
@@ -15,12 +16,12 @@ func DrawXYScatterPlot(data [][]float64, savePlace string) {
 		for i := 0; i < NSets; i ++{
 			x := data[2*i]
 			y := data[2*i + 1]
-			scatter.AddYAxis("Set " + strconv.Itoa(i + 1), Transpose_float([][]float64{x, y}))
+			scatter.AddYAxis("Set " + strconv.Itoa(i + 1), TransposeFloat([][]float64{x, y}))
 		}
 	}else if len(data[0]) > 2 && len(data)%2 == 0{
 		x := data[0]
 		y := data[1]
-		scatter.AddYAxis("Set 1", Transpose_float([][]float64{x, y}))
+		scatter.AddYAxis("Set 1", TransposeFloat([][]float64{x, y}))
 	}else if len(data[0]) == 2 && len(data) > 2{
 		scatter.AddYAxis("Set 1", data)
 	}
@@ -32,6 +33,7 @@ func DrawXYScatterPlot(data [][]float64, savePlace string) {
 	scatter.Render(h)
 }
 
+// DrawLinePlot : 
 func DrawLinePlot(data [][]float64, savePlace string) {
 	Line := charts.NewLine()
 	
@@ -40,12 +42,12 @@ func DrawLinePlot(data [][]float64, savePlace string) {
 		for i := 0; i < NSets; i ++{
 			x := data[2*i]
 			y := data[2*i + 1]
-			Line.AddYAxis("Set " + strconv.Itoa(i + 1), Transpose_float([][]float64{x, y}))
+			Line.AddYAxis("Set " + strconv.Itoa(i + 1), TransposeFloat([][]float64{x, y}))
 		}
 	}else if len(data[0]) > 2 && len(data)%2 == 0{
 		x := data[0]
 		y := data[1]
-		Line.AddYAxis("Set 1", Transpose_float([][]float64{x, y}))
+		Line.AddYAxis("Set 1", TransposeFloat([][]float64{x, y}))
 	}else if len(data[0]) == 2 && len(data) > 2{
 		Line.AddYAxis("Set 1", data)
 	}

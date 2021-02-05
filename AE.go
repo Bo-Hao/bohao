@@ -26,7 +26,6 @@ type AE struct {
 	PredVal gorgonia.Value
 
 	Normal     bool
-	Normal_weight []float64
 	FitStock   Stock
 }
 
@@ -40,7 +39,6 @@ type AE_Encoder struct {
 	CoreVal gorgonia.Value
 
 	Normal     bool
-	Normal_weight []float64
 	FitStock   Stock
 }
 
@@ -54,7 +52,6 @@ type AE_Decoder struct {
 	PredVal gorgonia.Value
 
 	Normal     bool
-	Normal_weight []float64
 	FitStock   Stock
 }
 
@@ -69,16 +66,15 @@ type AE_Struction struct {
 	L1reg      float64
 	L2reg      float64
 	Normal     bool
-	Normal_weight []float64
 }
 
-func (m *AE) Learnables_Phase1() gorgonia.Nodes {
+func (m *AE) LearnablesPhase1() gorgonia.Nodes {
 	return gorgonia.Nodes{
 		m.W1, m.W2, m.B1, m.B2, m.B3, m.B4,
 	}
 }
 
-func (m *AE) Learnables_Phase2() gorgonia.Nodes {
+func (m *AE) LearnablesPhase2() gorgonia.Nodes {
 	return gorgonia.Nodes{
 		m.W2, m.B2, m.B3,
 	}
@@ -146,10 +142,10 @@ func NewAE(g *gorgonia.ExprGraph, S AE_Struction) *AE {
 		L1reg:      S.L1reg,
 		L2reg:      S.L2reg,
 		Normal:     S.Normal,
-		Normal_weight: S.Normal_weight,
 	}
 }
 
+// Clone_AE : 
 func Clone_AE(m *AE) *AE {
 	g := gorgonia.NewGraph()
 
@@ -182,15 +178,15 @@ func Clone_AE(m *AE) *AE {
 		Dropout:    m.Dropout,
 		Acti:       m.Acti,
 		Normal:     m.Normal,
-		Normal_weight: m.Normal_weight,
 	}
 }
 
+// Forward : 
 func (m *AE) Forward(x *gorgonia.Node) (err error) {
 	l := make([]*gorgonia.Node, 5)
-	l_dot := make([]*gorgonia.Node, 4)
-	l_add := make([]*gorgonia.Node, 4)
-	l_drop := make([]*gorgonia.Node, 4)
+	lDot := make([]*gorgonia.Node, 4)
+	lAdd := make([]*gorgonia.Node, 4)
+	lDrop := make([]*gorgonia.Node, 4)
 	var denoise1 *gorgonia.Node
 	corruption := gorgonia.BinomialRandomNode(m.G, tensor.Float64, 1, m.Denoising)
 
@@ -201,75 +197,75 @@ func (m *AE) Forward(x *gorgonia.Node) (err error) {
 	}
 
 	// layer 1
-	if l_dot[0], err = gorgonia.Mul(denoise1, m.W1); err != nil {
+	if lDot[0], err = gorgonia.Mul(denoise1, m.W1); err != nil {
 		log.Fatal("Can't Mul 1! ", err)
 	}
 
-	if l_add[0], err = gorgonia.BroadcastAdd(l_dot[0], m.B1, nil, []byte{0}); err != nil {
+	if lAdd[0], err = gorgonia.BroadcastAdd(lDot[0], m.B1, nil, []byte{0}); err != nil {
 		log.Fatal("Can't Add 1! ", err)
 	}
 
-	if l_drop[0], err = gorgonia.Dropout(l_add[0], m.Dropout[0]); err != nil {
+	if lDrop[0], err = gorgonia.Dropout(lAdd[0], m.Dropout[0]); err != nil {
 		log.Fatal("Can't drop 1! ", err)
 	}
 
-	if l[1], err = m.Acti[0](l_drop[0]); err != nil {
+	if l[1], err = m.Acti[0](lDrop[0]); err != nil {
 		log.Fatal("Can't activate! ", err)
 	}
 
 	m.H1 = l[1]
 
 	// layer 2
-	if l_dot[1], err = gorgonia.Mul(l[1], m.W2); err != nil {
+	if lDot[1], err = gorgonia.Mul(l[1], m.W2); err != nil {
 		log.Fatal("Can't Mul 2! ", err)
 	}
 
-	if l_add[1], err = gorgonia.BroadcastAdd(l_dot[1], m.B2, nil, []byte{0}); err != nil {
+	if lAdd[1], err = gorgonia.BroadcastAdd(lDot[1], m.B2, nil, []byte{0}); err != nil {
 		log.Fatal("Can't Add 2! ", err)
 	}
 
-	if l_drop[1], err = gorgonia.Dropout(l_add[1], m.Dropout[1]); err != nil {
+	if lDrop[1], err = gorgonia.Dropout(lAdd[1], m.Dropout[1]); err != nil {
 		log.Fatal("Can't drop 2! ", err)
 	}
 
-	if l[2], err = m.Acti[1](l_drop[1]); err != nil {
+	if l[2], err = m.Acti[1](lDrop[1]); err != nil {
 		log.Fatal("Can't activate 2! ", err)
 	}
 
 	// layer 3
-	W2_T, _ := gorgonia.Transpose(m.W2)
-	if l_dot[2], err = gorgonia.Mul(l[2], W2_T); err != nil {
+	W2T, _ := gorgonia.Transpose(m.W2)
+	if lDot[2], err = gorgonia.Mul(l[2], W2T); err != nil {
 		log.Fatal("Can't Mul 3! ", err)
 	}
 
-	if l_add[2], err = gorgonia.BroadcastAdd(l_dot[2], m.B3, nil, []byte{0}); err != nil {
+	if lAdd[2], err = gorgonia.BroadcastAdd(lDot[2], m.B3, nil, []byte{0}); err != nil {
 		log.Fatal("Can't Add 3! ", err)
 	}
 
-	if l_drop[2], err = gorgonia.Dropout(l_add[2], m.Dropout[2]); err != nil {
+	if lDrop[2], err = gorgonia.Dropout(lAdd[2], m.Dropout[2]); err != nil {
 		log.Fatal("Can't drop 3! ", err)
 	}
 
-	if l[3], err = m.Acti[2](l_drop[2]); err != nil {
+	if l[3], err = m.Acti[2](lDrop[2]); err != nil {
 		log.Fatal("Can't activate 3! ", err)
 	}
 	m.H3 = l[3]
 
 	// layer 4
-	W1_T, _ := gorgonia.Transpose(m.W1)
-	if l_dot[3], err = gorgonia.Mul(l[3], W1_T); err != nil {
+	W1T, _ := gorgonia.Transpose(m.W1)
+	if lDot[3], err = gorgonia.Mul(l[3], W1T); err != nil {
 		log.Fatal("Can't Mul 4! ", err)
 	}
 
-	if l_add[3], err = gorgonia.BroadcastAdd(l_dot[3], m.B4, nil, []byte{0}); err != nil {
+	if lAdd[3], err = gorgonia.BroadcastAdd(lDot[3], m.B4, nil, []byte{0}); err != nil {
 		log.Fatal("Can't Add 4! ", err)
 	}
 
-	if l_drop[3], err = gorgonia.Dropout(l_add[3], m.Dropout[3]); err != nil {
+	if lDrop[3], err = gorgonia.Dropout(lAdd[3], m.Dropout[3]); err != nil {
 		log.Fatal("Can't drop 4! ", err)
 	}
 
-	if l[4], err = m.Acti[3](l_drop[3]); err != nil {
+	if l[4], err = m.Acti[3](lDrop[3]); err != nil {
 		log.Fatal("Can't activate 4! ", err)
 	}
 
@@ -278,36 +274,37 @@ func (m *AE) Forward(x *gorgonia.Node) (err error) {
 	return
 }
 
-func (m *AE) Fit(x_ [][]float64, para TrainingParameter) {
-	input_x := x_
+// Fit : train autoencoder.
+func (m *AE) Fit(x [][]float64, para TrainingParameter) {
+	inputX := x
 
 	//Normalize the input data. And stock the information into m.FitStock.
 	S := Stock{}
 	if m.Normal {
-		input_x, S.mean_list_x, S.std_list_x = Normalized(x_, m.Normal_weight)
+		inputX, S.meanListX, S.stdListX = Normalized(x)
 	}
 
 	// set S into struct m.
 	m.FitStock = S
 
 	// reshape data
-	x_oneDim := ToOneDimSlice(input_x)
-	sampleSize := len(input_x)
+	flattenX := ToOneDimSlice(inputX)
+	sampleSize := len(inputX)
 
 	// Define shapes
 	inputShape := m.W1.Shape()[0]
 
 	// batch size will not greater than sample size and won't less than 2. Since batch size equal to 1 will crash the model.
-	batchSize, batches := Cal_Batch(sampleSize, para.BatchSize)
+	batchSize, batches := CalBatch(sampleSize, para.BatchSize)
 
 	// Construct the input data tensor and node.
-	xT := tensor.New(tensor.WithBacking(x_oneDim), tensor.WithShape(sampleSize, inputShape))
+	xT := tensor.New(tensor.WithBacking(flattenX), tensor.WithShape(sampleSize, inputShape))
 
 	// costVal will be used outside the loop.
 	var costVal gorgonia.Value
 
 	// Set up parameters for training.
-	delivery := fit_delivery{
+	delivery := paraDelivery{
 		batches:     batches,
 		batchsize:   batchSize,
 		inputShape:  inputShape,
@@ -329,23 +326,23 @@ func (m *AE) Fit(x_ [][]float64, para TrainingParameter) {
 	log.Printf("training finish!")
 }
 
-func (m *AE) _AdamTrain(xT *tensor.Dense, delivery fit_delivery) {
+func (m *AE) _AdamTrain(xT *tensor.Dense, delivery paraDelivery) {
 	batches := delivery.batches
 	batchSize := delivery.batchsize
 	inputShape := delivery.inputShape
 	para := delivery.para
 	sampleSize := delivery.samplesize
 	S := delivery.S
-	learning_rate := para.Lr
+	learningRate := para.Lr
 
-	var costVal_phase1, costVal_phase2 gorgonia.Value
+	var costValPhase1, costValPhase2 gorgonia.Value
 	// Start epoches training
 	// Phase 1
-	solver := gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(batchSize)), gorgonia.WithLearnRate(learning_rate), gorgonia.WithL1Reg(m.L1reg), gorgonia.WithL2Reg(m.L2reg))
+	solver := gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(batchSize)), gorgonia.WithLearnRate(learningRate), gorgonia.WithL1Reg(m.L1reg), gorgonia.WithL2Reg(m.L2reg))
 	for epoch := 0; epoch < int(para.Epoches/2); epoch++ {
 		if epoch == int(para.Epoches/4) {
-			learning_rate /= 10
-			solver = gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(batchSize)), gorgonia.WithLearnRate(learning_rate), gorgonia.WithL1Reg(m.L1reg), gorgonia.WithL2Reg(m.L2reg))
+			learningRate /= 10
+			solver = gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(batchSize)), gorgonia.WithLearnRate(learningRate), gorgonia.WithL1Reg(m.L1reg), gorgonia.WithL2Reg(m.L2reg))
 		}
 		// Start batches...
 		for b := 0; b < batches; b++ {
@@ -378,18 +375,18 @@ func (m *AE) _AdamTrain(xT *tensor.Dense, delivery fit_delivery) {
 			}
 
 			// Define the loss function.
-			cost_phase1 := para.Lossfunc(m.Pred, X)
+			costPhase1 := para.Lossfunc(m.Pred, X)
 
 			// Record cost change
-			gorgonia.Read(cost_phase1, &costVal_phase1)
+			gorgonia.Read(costPhase1, &costValPhase1)
 
 			// Update the gradient.
-			if _, err = gorgonia.Grad(cost_phase1, m.Learnables_Phase1()...); err != nil {
+			if _, err = gorgonia.Grad(costPhase1, m.LearnablesPhase1()...); err != nil {
 				log.Fatal("Unable to update gradient 1. ", err)
 			}
 
 			// Define the tape machine to record the gradient change for the nodes which should be optimized or activated.
-			vm := gorgonia.NewTapeMachine(m.G, gorgonia.BindDualValues(m.Learnables_Phase1()...))
+			vm := gorgonia.NewTapeMachine(m.G, gorgonia.BindDualValues(m.LearnablesPhase1()...))
 
 			// Dump it
 			gorgonia.Let(X, xVal)
@@ -397,27 +394,27 @@ func (m *AE) _AdamTrain(xT *tensor.Dense, delivery fit_delivery) {
 			// Optimizing...
 			vm.Reset()
 			vm.RunAll()
-			solver.Step(gorgonia.NodesToValueGrads(m.Learnables_Phase1()))
+			solver.Step(gorgonia.NodesToValueGrads(m.LearnablesPhase1()))
 			vm.Reset()
 		}
 
 		// Print cost
 		if epoch%100 == 0 {
-			fmt.Println("Phase 1: Iteration: ", epoch, "  Cost: ", costVal_phase1)
+			fmt.Println("Phase 1: Iteration: ", epoch, "  Cost: ", costValPhase1)
 		}
 		// Stock it.
-		S.LossRecord = append(S.LossRecord, []float64{float64(epoch), costVal_phase1.Data().(float64)})
+		S.LossRecord = append(S.LossRecord, []float64{float64(epoch), costValPhase1.Data().(float64)})
 	}
 	m.FitStock.LossRecord = S.LossRecord
 
 	// Phase 2
 	m.Denoising = 0.
-	learning_rate = para.Lr
-	solver = gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(batchSize)), gorgonia.WithLearnRate(learning_rate))
+	learningRate = para.Lr
+	solver = gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(batchSize)), gorgonia.WithLearnRate(learningRate))
 	for epoch := 0; epoch < para.Epoches-int(para.Epoches/2); epoch++ {
 		if epoch == int(para.Epoches/4) {
-			learning_rate /= 10
-			solver = gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(batchSize)), gorgonia.WithLearnRate(learning_rate))
+			learningRate /= 10
+			solver = gorgonia.NewAdamSolver(gorgonia.WithBatchSize(float64(batchSize)), gorgonia.WithLearnRate(learningRate))
 		}
 		// Start batches...
 		for b := 0; b < batches; b++ {
@@ -450,18 +447,18 @@ func (m *AE) _AdamTrain(xT *tensor.Dense, delivery fit_delivery) {
 			}
 
 			// Define the loss function.
-			cost_phase2 := para.Lossfunc(m.H3, m.H1)
+			costPhase2 := para.Lossfunc(m.H3, m.H1)
 
 			// Record cost change
-			gorgonia.Read(cost_phase2, &costVal_phase2)
+			gorgonia.Read(costPhase2, &costValPhase2)
 
 			// Update the gradient.
-			if _, err = gorgonia.Grad(cost_phase2, m.Learnables_Phase2()...); err != nil {
+			if _, err = gorgonia.Grad(costPhase2, m.LearnablesPhase2()...); err != nil {
 				log.Fatal("Unable to update gradient 2.", err)
 			}
 
 			// Define the tape machine to record the gradient change for the nodes which should be optimized or activated.
-			vm := gorgonia.NewTapeMachine(m.G, gorgonia.BindDualValues(m.Learnables_Phase2()...))
+			vm := gorgonia.NewTapeMachine(m.G, gorgonia.BindDualValues(m.LearnablesPhase2()...))
 
 			// Dump it
 			gorgonia.Let(X, xVal)
@@ -469,16 +466,16 @@ func (m *AE) _AdamTrain(xT *tensor.Dense, delivery fit_delivery) {
 			// Optimizing...
 			vm.Reset()
 			vm.RunAll()
-			solver.Step(gorgonia.NodesToValueGrads(m.Learnables_Phase2()))
+			solver.Step(gorgonia.NodesToValueGrads(m.LearnablesPhase2()))
 			vm.Reset()
 		}
 
 		// Print cost
 		if epoch%100 == 0 {
-			fmt.Println("Phase 2: Iteration: ", epoch, "  Cost: ", costVal_phase2)
+			fmt.Println("Phase 2: Iteration: ", epoch, "  Cost: ", costValPhase2)
 		}
 		// Stock it.
-		S.LossRecord = append(S.LossRecord, []float64{float64(epoch), costVal_phase2.Data().(float64)})
+		S.LossRecord = append(S.LossRecord, []float64{float64(epoch), costValPhase2.Data().(float64)})
 	}
 	m.FitStock.LossRecord = S.LossRecord
 }
@@ -506,7 +503,6 @@ func (m *AE) _encoder() *AE_Encoder {
 		B2:         b2,
 		Acti:       m.Acti[0:2],
 		Normal:     m.Normal,
-		Normal_weight: m.Normal_weight,
 		FitStock:   m.FitStock,
 	}
 }
@@ -534,41 +530,40 @@ func (m *AE) _decoder() *AE_Decoder {
 		B4:         b4,
 		Acti:       m.Acti[2:],
 		Normal:     m.Normal,
-		Normal_weight: m.Normal_weight,
 		FitStock:   m.FitStock,
 	}
 }
 
 func (m *AE_Encoder) fwd(x *gorgonia.Node) (err error) {
 	l := make([]*gorgonia.Node, 3)
-	l_dot := make([]*gorgonia.Node, 2)
-	l_add := make([]*gorgonia.Node, 2)
+	lDot := make([]*gorgonia.Node, 2)
+	lAdd := make([]*gorgonia.Node, 2)
 
 	l[0] = x
 
 	// layer 1
-	if l_dot[0], err = gorgonia.Mul(l[0], m.W1); err != nil {
+	if lDot[0], err = gorgonia.Mul(l[0], m.W1); err != nil {
 		log.Fatal("Can't Mul 1! ", err)
 	}
 
-	if l_add[0], err = gorgonia.BroadcastAdd(l_dot[0], m.B1, nil, []byte{0}); err != nil {
+	if lAdd[0], err = gorgonia.BroadcastAdd(lDot[0], m.B1, nil, []byte{0}); err != nil {
 		log.Fatal("Can't Add 1! ", err)
 	}
 
-	if l[1], err = m.Acti[0](l_add[0]); err != nil {
+	if l[1], err = m.Acti[0](lAdd[0]); err != nil {
 		log.Fatal("Can't activate! ", err)
 	}
 
 	// layer 2
-	if l_dot[1], err = gorgonia.Mul(l[1], m.W2); err != nil {
+	if lDot[1], err = gorgonia.Mul(l[1], m.W2); err != nil {
 		log.Fatal("Can't Mul 2! ", err)
 	}
 
-	if l_add[1], err = gorgonia.BroadcastAdd(l_dot[1], m.B2, nil, []byte{0}); err != nil {
+	if lAdd[1], err = gorgonia.BroadcastAdd(lDot[1], m.B2, nil, []byte{0}); err != nil {
 		log.Fatal("Can't Add 2! ", err)
 	}
 
-	if l[2], err = m.Acti[1](l_add[1]); err != nil {
+	if l[2], err = m.Acti[1](lAdd[1]); err != nil {
 		log.Fatal("Can't activate 2! ", err)
 	}
 
@@ -580,37 +575,37 @@ func (m *AE_Encoder) fwd(x *gorgonia.Node) (err error) {
 
 func (m *AE_Decoder) fwd(c *gorgonia.Node) (err error) {
 	l := make([]*gorgonia.Node, 3)
-	l_dot := make([]*gorgonia.Node, 2)
-	l_add := make([]*gorgonia.Node, 2)
+	lDot := make([]*gorgonia.Node, 2)
+	lAdd := make([]*gorgonia.Node, 2)
 
 	// Denoising layer 1
 	l[0] = c
 
 	// layer 3
-	W2_T, _ := gorgonia.Transpose(m.W2)
-	if l_dot[0], err = gorgonia.Mul(l[0], W2_T); err != nil {
+	W2T, _ := gorgonia.Transpose(m.W2)
+	if lDot[0], err = gorgonia.Mul(l[0], W2T); err != nil {
 		log.Fatal("Can't Mul 3! ", err)
 	}
 
-	if l_add[0], err = gorgonia.BroadcastAdd(l_dot[0], m.B3, nil, []byte{0}); err != nil {
+	if lAdd[0], err = gorgonia.BroadcastAdd(lDot[0], m.B3, nil, []byte{0}); err != nil {
 		log.Fatal("Can't Add 3! ", err)
 	}
 
-	if l[1], err = m.Acti[0](l_add[0]); err != nil {
+	if l[1], err = m.Acti[0](lAdd[0]); err != nil {
 		log.Fatal("Can't activate 3! ", err)
 	}
 
 	// layer 4
-	W1_T, _ := gorgonia.Transpose(m.W1)
-	if l_dot[1], err = gorgonia.Mul(l[1], W1_T); err != nil {
+	W1T, _ := gorgonia.Transpose(m.W1)
+	if lDot[1], err = gorgonia.Mul(l[1], W1T); err != nil {
 		log.Fatal("Can't Mul 4! ", err)
 	}
 
-	if l_add[1], err = gorgonia.BroadcastAdd(l_dot[1], m.B4, nil, []byte{0}); err != nil {
+	if lAdd[1], err = gorgonia.BroadcastAdd(lDot[1], m.B4, nil, []byte{0}); err != nil {
 		log.Fatal("Can't Add 4! ", err)
 	}
 
-	if l[2], err = m.Acti[1](l_add[1]); err != nil {
+	if l[2], err = m.Acti[1](lAdd[1]); err != nil {
 		log.Fatal("Can't activate 4! ", err)
 	}
 
@@ -620,27 +615,28 @@ func (m *AE_Decoder) fwd(c *gorgonia.Node) (err error) {
 	return
 }
 
+// Encode : 
 func (m *AE) Encode(x [][]float64) [][]float64 {
 	encoder := m._encoder()
 	S := encoder.FitStock
 
 	inputShape := encoder.W1.Shape()[0]
 	sampleSize := len(x)
-	batchSize, batches := Cal_Batch(sampleSize, sampleSize)
+	batchSize, batches := CalBatch(sampleSize, sampleSize)
 
 	//Normalize the input data. And stock the information into m.FitStock.
-	input_x := x
+	inputX := x
 	if encoder.Normal {
-		input_x = Normalize_adjust(x, S.mean_list_x, S.std_list_x)
+		inputX = NormalizeAdjust(x, S.meanListX, S.stdListX)
 	}
 
-	x_oneDim := ToOneDimSlice(input_x)
+	flattenX := ToOneDimSlice(inputX)
 	for i := 0; i < inputShape; i++ {
-		x_oneDim = append(x_oneDim, x_oneDim[len(x_oneDim)-inputShape+i])
+		flattenX = append(flattenX, flattenX[len(flattenX)-inputShape+i])
 	}
 
 	// Construct the input data tensor.
-	xT := tensor.New(tensor.WithBacking(x_oneDim), tensor.WithShape(sampleSize+1, inputShape))
+	xT := tensor.New(tensor.WithBacking(flattenX), tensor.WithShape(sampleSize+1, inputShape))
 
 	// make prediction in batch.
 	var prediction [][]float64
@@ -659,7 +655,7 @@ func (m *AE) Encode(x [][]float64) [][]float64 {
 		}
 
 		if over == 1 {
-			end += 1
+			end ++
 		}
 		//slice data Note: xT and xVal are same type but different size.
 		xVal, err := xT.Slice(sli{start, end})
@@ -691,24 +687,25 @@ func (m *AE) Encode(x [][]float64) [][]float64 {
 	return prediction
 }
 
+// Decode : 
 func (m *AE) Decode(core [][]float64) (prediction_gen [][]float64) {
 	decoder := m._decoder()
 	S := decoder.FitStock
 
 	inputShape := decoder.W2.Shape()[1]
 	sampleSize := len(core)
-	batchSize, batches := Cal_Batch(sampleSize, sampleSize)
+	batchSize, batches := CalBatch(sampleSize, sampleSize)
 
 	//Normalize the input data. And stock the information into m.FitStock.
-	input_x := core
+	inputX := core
 
-	x_oneDim := ToOneDimSlice(input_x)
+	flattenX := ToOneDimSlice(inputX)
 	for i := 0; i < inputShape; i++ {
-		x_oneDim = append(x_oneDim, x_oneDim[len(x_oneDim)-inputShape+i])
+		flattenX = append(flattenX, flattenX[len(flattenX)-inputShape+i])
 	}
 
 	// Construct the input data tensor.
-	xT := tensor.New(tensor.WithBacking(x_oneDim), tensor.WithShape(sampleSize+1, inputShape))
+	xT := tensor.New(tensor.WithBacking(flattenX), tensor.WithShape(sampleSize+1, inputShape))
 
 	// make prediction in batch.
 	var prediction [][]float64
@@ -727,7 +724,7 @@ func (m *AE) Decode(core [][]float64) (prediction_gen [][]float64) {
 		}
 
 		if over == 1 {
-			end += 1
+			end ++
 		}
 		//slice data Note: xT and xVal are same type but different size.
 		xVal, err := xT.Slice(sli{start, end})
@@ -758,7 +755,7 @@ func (m *AE) Decode(core [][]float64) (prediction_gen [][]float64) {
 	}
 
 	if m.Normal {
-		prediction_gen = Generalize(prediction, S.mean_list_x, S.std_list_x)
+		prediction_gen = Generalize(prediction, S.meanListX, S.stdListX)
 	} else {
 		prediction_gen = prediction
 	}
